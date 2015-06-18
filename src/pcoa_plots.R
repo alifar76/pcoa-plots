@@ -81,16 +81,22 @@ main_call <- function(dminp,mapfile,metavariable,plottitle){
 }
  
 
-setwd('/Users/alifaruqi/Desktop/Projects/Development_Tools/Github_Scripts/pcoa-plots')
 
+## Change these values:
+setwd('/Users/alifaruqi/Desktop/Projects/Development_Tools/Github_Scripts/pcoa-plots')
 outputname <- "beta_diversity"
 inputfile <- c("bray_curtis_dm.txt","canberra_dm.txt","unweighted_unifrac_dm.txt","weighted_unifrac_dm.txt")
 plotnames <- c("Disease vs. Healthy (Bray-Curtis)","Disease vs. Healthy (Canberra)","Disease vs. Healthy (Unweighted UniFrac)","Disease vs. Healthy (Weighted UniFrac)")
+mapname <- "mapfile.txt"
+metavarname <- "Treatment"
 
-b1 <- main_call(inputfile[1],"mapfile.txt","Treatment",plotnames[1])
-b2 <- main_call(inputfile[2],"mapfile.txt","Treatment",plotnames[2])
-b3 <- main_call(inputfile[3],"mapfile.txt","Treatment",plotnames[3])
-b4 <- main_call(inputfile[4],"mapfile.txt","Treatment",plotnames[4])
+
+# Doesn't change
+
+b1 <- main_call(inputfile[1],mapname,metavarname,plotnames[1])
+b2 <- main_call(inputfile[2],mapname,metavarname,plotnames[2])
+b3 <- main_call(inputfile[3],mapname,metavarname,plotnames[3])
+b4 <- main_call(inputfile[4],mapname,metavarname,plotnames[4])
 
 pdf(paste(outputname,".pdf",sep=""),height=15, width=25)
 multiplot(b1,b2,b3,b4,cols=2)
