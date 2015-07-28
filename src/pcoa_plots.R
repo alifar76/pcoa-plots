@@ -65,9 +65,19 @@ PCOA_calcs <- function(dmat,mapfile,var,plottitle){
 	ppos <- max(MYpcoa$points[,2])
 	varpos <- ppos - 0.025
 	xpos <- min(MYpcoa$points[,1])+0.05
+  PCOA <- cbind(PCOA,rownames(PCOA))
+  colnames(PCOA) <- c(colnames(PCOA)[1:length(colnames(PCOA))-1],"samplenames")
+
 	# labs(color="Clinical Outcome") changes legend label. 
-	p1 <- ggplot(data = PCOA, aes(PCoA1, PCoA2)) + geom_point(aes(color = comparison_groups),size=3) + xlab(xaxis) + ylab(yaxis) + 
-	geom_path(data=df_ell, aes(x=Dim1, y=Dim2,colour=comparison_groups), size=1, linetype=2) + labs(title = plottitle, color="Clinical Outcome") + 
+	p1 <- ggplot(data = PCOA, aes(PCoA1, PCoA2)) + 
+  geom_point(aes(color = comparison_groups),size=3) + 
+  
+  # Comment geom_text if you wish to ignore points labeling
+  geom_text(aes(label=samplenames),hjust=0, vjust=0) +      # Play-around with hjust and vjust values to your liking to best make plot
+  xlab(xaxis) + 
+  ylab(yaxis) + 
+	geom_path(data=df_ell, aes(x=Dim1, y=Dim2,colour=comparison_groups), size=1, linetype=2) + 
+  labs(title = plottitle, color="Clinical Outcome") + 
 	theme(plot.title = element_text(size = 25),axis.text=element_text(size=15,color="black"),axis.title=element_text(size=25,color="black"), legend.key.size = unit(1,"cm"),legend.text=element_text(size=25),legend.title=element_text(size=25)) + 
 	annotate("text",x=c(xpos,xpos),y=c(ppos,varpos),label=c(plab,varlab))
 	return (p1)
@@ -83,7 +93,7 @@ main_call <- function(dminp,mapfile,metavariable,plottitle){
 
 
 ## Change these values:
-setwd('/Users/alifaruqi/Desktop/Projects/Development_Tools/Github_Scripts/pcoa-plots')
+setwd('/Users/alifaruqi/Desktop/Projects/Development_Tools/Github_Scripts/pcoa-plots/src')
 outputname <- "beta_diversity"
 inputfile <- c("bray_curtis_dm.txt","canberra_dm.txt","unweighted_unifrac_dm.txt","weighted_unifrac_dm.txt")
 plotnames <- c("Disease vs. Healthy (Bray-Curtis)","Disease vs. Healthy (Canberra)","Disease vs. Healthy (Unweighted UniFrac)","Disease vs. Healthy (Weighted UniFrac)")

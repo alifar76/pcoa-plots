@@ -1,0 +1,1347 @@
+setwd('/Users/alifaruqi/Desktop/Projects/Kei_Project/URECA_7_year_outcome/asthma_7yr_022315/aero_allergen_asthma_combine_030215/three_way_comparison_031815/trajectory_analysis_alpha_beta_div_070615/serv_data_070715/alpha_div')#
+meta <- "sens_traj_y7"#
+namearrange <- c("Early Onset","Late Onset","Minimal/None")#
+diversity_measures <- c("richness","shannon","evenness","inv_simpson","PD_whole_tree")#
+ylabels <- c("Richness","Shannon's Diversity","Evenness","Inverse Simpson","Faith's Phylogenetic Diversity")#
+comp1 <- c(namearrange[1],namearrange[3])#
+comp2 <- c(namearrange[2],namearrange[3])#
+xlabel <- "Clinical Outcome"#
+sigtest <- "kw"#
+#
+MYdata <- read.csv("diversity_check.csv", header = T, sep = ",", check.names = T, row.names = 1)#
+maxval1 <- ceiling(max(MYdata[,diversity_measures[1]]))#
+fg1 <- dot_plotting(MYdata,namearrange,meta,ylabels[1],xlabel,comp1,comp2,comp3,diversity_measures[1],maxval1,sigtest)#
+maxval5 <- ceiling(max(MYdata[,diversity_measures[5]]))#
+fg5 <- dot_plotting(MYdata,namearrange,meta,ylabels[5],xlabel,comp1,comp2,comp3,diversity_measures[5],maxval5,sigtest)
+require('ggplot2')#
+require('grid')#
+require('gridExtra')#
+# Multiple plot function: (http://www.cookbook-r.com/Graphs/Multiple_graphs_on_one_page_(ggplot2)/)#
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {#
+  # Make a list from the ... arguments and plotlist#
+  plots <- c(list(...), plotlist)#
+  numPlots = length(plots)#
+  # If layout is NULL, then use 'cols' to determine layout#
+  if (is.null(layout)) {#
+    # Make the panel#
+    # ncol: Number of columns of plots#
+    # nrow: Number of rows needed, calculated from # of cols#
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),#
+                    ncol = cols, nrow = ceiling(numPlots/cols))#
+  }#
+ if (numPlots==1) {#
+    print(plots[[1]])#
+  } else {#
+    # Set up the page#
+    grid.newpage()#
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))#
+    # Make each plot, in the correct location#
+    for (i in 1:numPlots) {#
+      # Get the i,j matrix positions of the regions that contain this subplot#
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))#
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,#
+                                      layout.pos.col = matchidx$col))#
+    }#
+  }#
+}#
+# Function to re-order a dataframe based on a user-defined order of a specific column entries#
+dataframe_filter <- function(namearrange,meta,divint,MYdata){#
+	rearrlist <- lapply(namearrange,function(x) eval(parse(text = paste("subset(MYdata,", meta, "==x,select=c(",meta,",",divint,"))"))))#
+	newdataf <- do.call("rbind", rearrlist)#
+	return (newdataf)	#
+}#
+# Function to create dotplots with ANOVA and Kruskal-Wallis p-values#
+dot_plotting <- function(MYdata,namearrange,meta,ylabel,xlabel,comp1,comp2,comp3,divint,maxval,sigtest){#
+	MYdata[,meta] = factor(MYdata[,meta],namearrange)#
+	comp1df <- dataframe_filter(comp1,meta,divint,MYdata)#
+	comp2df <- dataframe_filter(comp2,meta,divint,MYdata)#
+	comp3df <- dataframe_filter(comp3,meta,divint,MYdata)#
+	pval.kw1 <- signif(kruskal.test(as.formula(paste(divint,"~",meta)), data=comp1df)[3][[1]],3)#
+	pval.kw2 <- signif(kruskal.test(as.formula(paste(divint,"~",meta)), data=comp2df)[3][[1]],3)#
+	pval.kw3 <- signif(kruskal.test(as.formula(paste(divint,"~",meta)), data=comp3df)[3][[1]],3)#
+	pval.anov1 <- signif(summary(aov(as.formula(paste(divint,"~",meta)), data=comp1df))[[1]][[5]][1],3)#
+	pval.anov2 <- signif(summary(aov(as.formula(paste(divint,"~",meta)), data=comp2df))[[1]][[5]][1],3)#
+	pval.anov3 <- signif(summary(aov(as.formula(paste(divint,"~",meta)), data=comp3df))[[1]][[5]][1],3)#
+	pval.kw.test1 <- paste("p-value = ",ifelse(pval.kw1 < 0.05,paste(pval.kw1,"*",sep=""),pval.kw1),sep="")		# KW p-value group 1 vs group 4#
+	pval.kw.test2 <- paste("p-value = ",ifelse(pval.kw2 < 0.05,paste(pval.kw2,"*",sep=""),pval.kw2),sep="")		# KW p-value group 2 vs group 4#
+	pval.kw.test3 <- paste("p-value = ",ifelse(pval.kw3 < 0.05,paste(pval.kw3,"*",sep=""),pval.kw3),sep="")		# KW p-value group 3 vs group 4#
+	pval.anova.test1 <- paste("p-value = ",ifelse(pval.anov1 < 0.05,paste(pval.anov1,"*",sep=""),pval.anov1),sep="")		# Anova p-value group 1 vs group 4#
+	pval.anova.test2 <- paste("p-value = ",ifelse(pval.anov2 < 0.05,paste(pval.anov2,"*",sep=""),pval.anov2),sep="")		# Anova p-value group 2 vs group 4#
+	pval.anova.test3 <- paste("p-value = ",ifelse(pval.anov3 < 0.05,paste(pval.anov3,"*",sep=""),pval.anov3),sep="")		# Anova p-value group 3 vs group 4#
+	cmd0 <- paste('ggplot(MYdata, aes(x = factor(',meta,'), y =',divint,', fill=factor(',meta,'))) + geom_dotplot(binaxis = "y", stackdir = "center",position="dodge") +#
+	stat_summary(fun.y = median, fun.ymin = median, fun.ymax = median, geom = "crossbar", width = 0.4)',sep="")#
+	cmd1 <- paste(cmd0,' + geom_segment(aes(x = 1, y = ',maxval/0.99,', xend = 2, yend = ',maxval/0.99,'))',sep="")#
+	cmd2 <- paste(cmd1,' + geom_segment(aes(x = 1, y = ',maxval/0.95,', xend = 3, yend = ',maxval/0.95,'))',sep="")#
+	cmd3 <- paste(cmd2,' + geom_segment(aes(x = 1, y = ',maxval/0.91,', xend = 4, yend = ',maxval/0.91,'))',sep="")#
+	cmd4 <- paste(cmd3,' + xlab("',xlabel,'") + ylab("',ylabel,'") + guides(fill=guide_legend(title="Clinical Outcome")) +#
+	 theme(axis.text.x=element_text(size=15,color="black"),axis.title=element_text(size=15,color="black"),legend.text=element_text(size=15),legend.title=element_text(size=15))',sep="")#
+	# Code for adjusting axes titles, legend names, etc.#
+	#theme(plot.title = element_text(lineheight=.8, face="bold",size=30),axis.text=element_text(size=20),#
+	#axis.title=element_text(size=40,face="bold"),legend.key.size = unit(1, "cm"),legend.text=element_text(size=30),#
+	#legend.title=element_text(size=30)) + #
+	col_kw <- ifelse(c(pval.kw1,pval.kw2,pval.kw3) < 0.05,"red","black")#
+	col_anov <- ifelse(c(pval.anov1,pval.anov2,pval.anov3) < 0.05,"red","black")#
+	color_anova <- paste('c("',paste(col_anov, collapse = '","'),'")',sep="")#
+	color_kw <- paste('c("',paste(col_kw, collapse = '","'),'")',sep="")#
+	cmd_kw <- paste(cmd4,' + annotate("text", x = c(1.5,2,2.5), y = c(',maxval/0.97,',',maxval/0.93,',',maxval/0.89,'), label = c("',pval.kw.test1,'","',pval.kw.test2,'","',pval.kw.test3,'"), colour=',color_kw,', size=5)',sep="")#
+	cmd_anova <- paste(cmd4,' + annotate("text", x = c(1.5,2,2.5), y = c(',maxval/0.97,',',maxval/0.93,',',maxval/0.89,'), label = c("',pval.anova.test1,'","',pval.anova.test2,'","',pval.anova.test3,'"), colour=',color_anova,', size=5)',sep="")#
+	if (sigtest == "anova"){#
+		finalfig <- eval(parse(text=cmd_anova))#
+		return (finalfig)#
+	} else {#
+		finalfig <- eval(parse(text=cmd_kw))#
+		return (finalfig)#
+	}	#
+}#
+# Function to call all other functions#
+main_function <- function(infile,namearrange,meta,xlabel,comp1,comp2,comp3,diversity_measures,ylabels,outfile,sigtest){#
+	MYdata <- read.csv(infile, header = T, sep = ",", check.names = T, row.names = 1)#
+	maxval1 <- ceiling(max(MYdata[,diversity_measures[1]]))#
+	fg1 <- dot_plotting(MYdata,namearrange,meta,ylabels[1],xlabel,comp1,comp2,comp3,diversity_measures[1],maxval1,sigtest)#
+	maxval5 <- ceiling(max(MYdata[,diversity_measures[5]]))#
+	fg5 <- dot_plotting(MYdata,namearrange,meta,ylabels[5],xlabel,comp1,comp2,comp3,diversity_measures[5],maxval5,sigtest)#
+	pdf(outfile,width=30,height=13)			# width 20,30 , height 8,13#
+	multiplot(fg1,fg5)#
+	dev.off()#
+}
+setwd('/Users/alifaruqi/Desktop/Projects/Kei_Project/URECA_7_year_outcome/asthma_7yr_022315/aero_allergen_asthma_combine_030215/three_way_comparison_031815/trajectory_analysis_alpha_beta_div_070615/serv_data_070715/alpha_div')#
+meta <- "sens_traj_y7"#
+namearrange <- c("Early Onset","Late Onset","Minimal/None")#
+diversity_measures <- c("richness","shannon","evenness","inv_simpson","PD_whole_tree")#
+ylabels <- c("Richness","Shannon's Diversity","Evenness","Inverse Simpson","Faith's Phylogenetic Diversity")#
+comp1 <- c(namearrange[1],namearrange[3])#
+comp2 <- c(namearrange[2],namearrange[3])#
+xlabel <- "Clinical Outcome"#
+sigtest <- "kw"#
+#
+MYdata <- read.csv("diversity_check.csv", header = T, sep = ",", check.names = T, row.names = 1)#
+maxval1 <- ceiling(max(MYdata[,diversity_measures[1]]))#
+fg1 <- dot_plotting(MYdata,namearrange,meta,ylabels[1],xlabel,comp1,comp2,comp3,diversity_measures[1],maxval1,sigtest)#
+maxval5 <- ceiling(max(MYdata[,diversity_measures[5]]))#
+fg5 <- dot_plotting(MYdata,namearrange,meta,ylabels[5],xlabel,comp1,comp2,comp3,diversity_measures[5],maxval5,sigtest)
+rm(list=ls())#
+require(grid)#
+require(vegan)#
+require(ggplot2)#
+require(gridExtra)#
+#
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {#
+  # Make a list from the ... arguments and plotlist#
+  plots <- c(list(...), plotlist)#
+  numPlots = length(plots)#
+  # If layout is NULL, then use 'cols' to determine layout#
+  if (is.null(layout)) {#
+    # Make the panel#
+    # ncol: Number of columns of plots#
+    # nrow: Number of rows needed, calculated from # of cols#
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),#
+                    ncol = cols, nrow = ceiling(numPlots/cols))#
+  }#
+ if (numPlots==1) {#
+    print(plots[[1]])#
+  } else {#
+    # Set up the page#
+    grid.newpage()#
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))#
+    # Make each plot, in the correct location#
+    for (i in 1:numPlots) {#
+      # Get the i,j matrix positions of the regions that contain this subplot#
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))#
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,#
+                                      layout.pos.col = matchidx$col))#
+    }#
+  }#
+}#
+PCOA_calcs <- function(dmat,mapfile,var,plottitle){#
+  	MYmetaEF = read.table(mapfile, header = T, sep = "\t", check.names = T, comment.char="")#
+  	set.seed(123)#
+  	MYpcoa <- cmdscale(as.dist(dmat), k = 2, eig=TRUE, add=TRUE) # Earlier had used dist function instead of vegdist, so was getting different values. dist did not support bray. #
+	eig2 <- eigenvals(MYpcoa)#
+	print(eig2 / sum(eig2)[1])#
+	pc1 <- round((eig2 / sum(eig2)[1])[1]*100,2)#
+	pc2 <- round((eig2 / sum(eig2)[1])[2]*100,2)#
+  	xaxis <- paste("PCoA1"," - ",pc1,"%",sep="")#
+  	yaxis <- paste("PCoA2"," - ",pc2,"%",sep="")#
+  	set.seed(123)#
+	adon <- tryCatch(adonis(as.dist(dmat) ~ MYmetaEF[,var], data=MYmetaEF, permutations = 1000, autotransform=T),error=function(e) NA)#
+	pvalue <- ifelse(is.na(adon$aov.tab[1,5]),"p-value = NA, variation = NA",paste("p-value = ",round(adon$aov.tab[1,6],3),", variation = ",round(adon$aov.tab[1,5],3)*100,"%",sep=""))#
+  PCOA <- data.frame(MYpcoa$points[,1],MYpcoa$points[,2], MYmetaEF[,var][!is.na(MYmetaEF[,var])])#
+	colnames(PCOA) <- c("PCoA1", "PCoA2" ,"comparison_groups")#
+	print (PCOA)#
+	plot.new()#
+  	#this is used to generate the confidence circles around the 95% confidence intervals#
+  	set.seed(123)#
+	ord<-ordiellipse(MYpcoa, PCOA$comparison_groups, display = "sites", kind = "se", conf = 0.95, label = T)#
+	df_ell <- data.frame()#
+	for(g in levels(PCOA$comparison_groups)){#
+		if (table(PCOA$comparison_groups)[[g]] > 2){#
+			df_ell <- rbind(df_ell, cbind(as.data.frame(with(PCOA[PCOA$comparison_groups==g,],#
+      		vegan:::veganCovEllipse(ord[[g]]$cov,ord[[g]]$center,ord[[g]]$scale))),comparison_groups=g))#
+    	}#
+	}#
+	plab <- gsub("^\\s+|\\s+$", "", strsplit(pvalue, ",")[[1]][1])#
+	varlab <- gsub("^\\s+|\\s+$", "", strsplit(pvalue, ",")[[1]][2])#
+	ppos <- max(MYpcoa$points[,2])#
+	varpos <- ppos - 0.025#
+	xpos <- min(MYpcoa$points[,1])+0.05#
+	# labs(color="Clinical Outcome") changes legend label. #
+	p1 <- ggplot(data = PCOA, aes(x=PCoA1, y=PCoA2, label=rownames(PCOA)))+ #
+	geom_point(aes(color = comparison_groups),size=6) +#
+	scale_color_manual(values = c("red","black"))+ #
+	geom_text(aes(label=rownames(PCOA))) +#
+	xlab(xaxis) + #
+	ylab(yaxis) + #
+	geom_path(data=df_ell, aes(x=Dim1, y=Dim2,colour=comparison_groups), size=1, linetype=2) + #
+	labs(title = plottitle, color="Phenotype") + #
+	theme(plot.title = element_text(size = 25),axis.text=element_text(size=15,color="black"),axis.title=element_text(size=20,color="black"), legend.key.size = unit(1,"cm"),legend.text=element_text(size=15),legend.title=element_text(size=15)) + #
+	annotate("text",x=c(xpos,xpos),y=c(ppos,varpos),label=c(plab,varlab))#
+	return (p1)#
+}#
+main_call <- function(dminp,mapfile,metavariable,plottitle){#
+	dmat <- read.table(dminp,header = T, sep = "\t", check.names = F, comment.char= "",row.names=1)#
+	u1 <- PCOA_calcs(dmat,mapfile,metavariable,plottitle)#
+	return (u1)#
+}#
+## Change these values:#
+setwd('/data/Users/dfadrosh/CORE/haim_analysis/haim_all_4_datasets/analysis/6wk/midcolon/WT_vs_KO/beta_diversity/figures')#
+outputname <- "beta_diversity_figures"#
+inputfile <- c("bray_curtis_dm.txt","canberra_dm.txt","unweighted_unifrac_dm.txt","weighted_unifrac_dm.txt")#
+plotnames <- c("6 Week Samples - Mid-Colon (Bray-Curtis)","6 Week Samples - Mid-Colon (Canberra)","6 Week Samples - Mid-Colon (Unweighted UniFrac)","6 Week Samples - Mid-Colon (Weighted UniFrac)")#
+mapname <- "../../mapping_subset.txt"#
+metavarname <- "MouseType"#
+# Doesn't change#
+#
+b1 <- main_call(inputfile[1],mapname,metavarname,plotnames[1])#
+b2 <- main_call(inputfile[2],mapname,metavarname,plotnames[2])#
+b3 <- main_call(inputfile[3],mapname,metavarname,plotnames[3])#
+b4 <- main_call(inputfile[4],mapname,metavarname,plotnames[4])#
+#print (b1)#
+#
+pdf(paste(outputname,".pdf",sep=""),height=15, width=20)#
+multiplot(b1,b2,b3,b4,cols=2)#
+dev.off()
+rm(list=ls())#
+require(grid)#
+require(vegan)#
+require(ggplot2)#
+require(gridExtra)#
+#
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {#
+  # Make a list from the ... arguments and plotlist#
+  plots <- c(list(...), plotlist)#
+  numPlots = length(plots)#
+  # If layout is NULL, then use 'cols' to determine layout#
+  if (is.null(layout)) {#
+    # Make the panel#
+    # ncol: Number of columns of plots#
+    # nrow: Number of rows needed, calculated from # of cols#
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),#
+                    ncol = cols, nrow = ceiling(numPlots/cols))#
+  }#
+ if (numPlots==1) {#
+    print(plots[[1]])#
+  } else {#
+    # Set up the page#
+    grid.newpage()#
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))#
+    # Make each plot, in the correct location#
+    for (i in 1:numPlots) {#
+      # Get the i,j matrix positions of the regions that contain this subplot#
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))#
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,#
+                                      layout.pos.col = matchidx$col))#
+    }#
+  }#
+}#
+PCOA_calcs <- function(dmat,mapfile,var,plottitle){#
+  	MYmetaEF = read.table(mapfile, header = T, sep = "\t", check.names = T, comment.char="")#
+  	set.seed(123)#
+  	MYpcoa <- cmdscale(as.dist(dmat), k = 2, eig=TRUE, add=TRUE) # Earlier had used dist function instead of vegdist, so was getting different values. dist did not support bray. #
+	eig2 <- eigenvals(MYpcoa)#
+	print(eig2 / sum(eig2)[1])#
+	pc1 <- round((eig2 / sum(eig2)[1])[1]*100,2)#
+	pc2 <- round((eig2 / sum(eig2)[1])[2]*100,2)#
+  	xaxis <- paste("PCoA1"," - ",pc1,"%",sep="")#
+  	yaxis <- paste("PCoA2"," - ",pc2,"%",sep="")#
+  	set.seed(123)#
+	adon <- tryCatch(adonis(as.dist(dmat) ~ MYmetaEF[,var], data=MYmetaEF, permutations = 1000, autotransform=T),error=function(e) NA)#
+	pvalue <- ifelse(is.na(adon$aov.tab[1,5]),"p-value = NA, variation = NA",paste("p-value = ",round(adon$aov.tab[1,6],3),", variation = ",round(adon$aov.tab[1,5],3)*100,"%",sep=""))#
+  PCOA <- data.frame(MYpcoa$points[,1],MYpcoa$points[,2], MYmetaEF[,var][!is.na(MYmetaEF[,var])])#
+	colnames(PCOA) <- c("PCoA1", "PCoA2" ,"comparison_groups")#
+	print (PCOA)#
+	plot.new()#
+  	#this is used to generate the confidence circles around the 95% confidence intervals#
+  	set.seed(123)#
+	ord<-ordiellipse(MYpcoa, PCOA$comparison_groups, display = "sites", kind = "se", conf = 0.95, label = T)#
+	df_ell <- data.frame()#
+	for(g in levels(PCOA$comparison_groups)){#
+		if (table(PCOA$comparison_groups)[[g]] > 2){#
+			df_ell <- rbind(df_ell, cbind(as.data.frame(with(PCOA[PCOA$comparison_groups==g,],#
+      		vegan:::veganCovEllipse(ord[[g]]$cov,ord[[g]]$center,ord[[g]]$scale))),comparison_groups=g))#
+    	}#
+	}#
+	plab <- gsub("^\\s+|\\s+$", "", strsplit(pvalue, ",")[[1]][1])#
+	varlab <- gsub("^\\s+|\\s+$", "", strsplit(pvalue, ",")[[1]][2])#
+	ppos <- max(MYpcoa$points[,2])#
+	varpos <- ppos - 0.025#
+	xpos <- min(MYpcoa$points[,1])+0.05#
+	# labs(color="Clinical Outcome") changes legend label. #
+	p1 <- ggplot(data = PCOA, aes(x=PCoA1, y=PCoA2, label=rownames(PCOA)))+ #
+	geom_point(aes(color = comparison_groups),size=6) +#
+	scale_color_manual(values = c("red","black"))+ #
+	geom_text(aes(label=rownames(PCOA))) +#
+	xlab(xaxis) + #
+	ylab(yaxis) + #
+	geom_path(data=df_ell, aes(x=Dim1, y=Dim2,colour=comparison_groups), size=1, linetype=2) + #
+	labs(title = plottitle, color="Phenotype") + #
+	theme(plot.title = element_text(size = 25),axis.text=element_text(size=15,color="black"),axis.title=element_text(size=20,color="black"), legend.key.size = unit(1,"cm"),legend.text=element_text(size=15),legend.title=element_text(size=15)) + #
+	annotate("text",x=c(xpos,xpos),y=c(ppos,varpos),label=c(plab,varlab))#
+	return (p1)#
+}#
+main_call <- function(dminp,mapfile,metavariable,plottitle){#
+	dmat <- read.table(dminp,header = T, sep = "\t", check.names = F, comment.char= "",row.names=1)#
+	u1 <- PCOA_calcs(dmat,mapfile,metavariable,plottitle)#
+	return (u1)#
+}#
+## Change these values:#
+setwd('/Users/alifaruqi/Desktop/Projects/Doug_R_Crash_Course/pcoa_id_labels_072815')#
+outputname <- "beta_diversity_figures"#
+inputfile <- c("bray_curtis_dm.txt","canberra_dm.txt","unweighted_unifrac_dm.txt","weighted_unifrac_dm.txt")#
+plotnames <- c("6 Week Samples - Mid-Colon (Bray-Curtis)","6 Week Samples - Mid-Colon (Canberra)","6 Week Samples - Mid-Colon (Unweighted UniFrac)","6 Week Samples - Mid-Colon (Weighted UniFrac)")#
+mapname <- "mapping_subset.txt"			#../../mapping_subset.txt#
+metavarname <- "MouseType"#
+# Doesn't change#
+#
+b1 <- main_call(inputfile[1],mapname,metavarname,plotnames[1])#
+b2 <- main_call(inputfile[2],mapname,metavarname,plotnames[2])#
+b3 <- main_call(inputfile[3],mapname,metavarname,plotnames[3])#
+b4 <- main_call(inputfile[4],mapname,metavarname,plotnames[4])#
+#print (b1)#
+#
+pdf(paste(outputname,".pdf",sep=""),height=15, width=20)#
+multiplot(b1,b2,b3,b4,cols=2)#
+dev.off()
+rm(list=ls())#
+require(grid)#
+require(vegan)#
+require(ggplot2)#
+require(gridExtra)#
+#
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {#
+  # Make a list from the ... arguments and plotlist#
+  plots <- c(list(...), plotlist)#
+  numPlots = length(plots)#
+  # If layout is NULL, then use 'cols' to determine layout#
+  if (is.null(layout)) {#
+    # Make the panel#
+    # ncol: Number of columns of plots#
+    # nrow: Number of rows needed, calculated from # of cols#
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),#
+                    ncol = cols, nrow = ceiling(numPlots/cols))#
+  }#
+ if (numPlots==1) {#
+    print(plots[[1]])#
+  } else {#
+    # Set up the page#
+    grid.newpage()#
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))#
+    # Make each plot, in the correct location#
+    for (i in 1:numPlots) {#
+      # Get the i,j matrix positions of the regions that contain this subplot#
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))#
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,#
+                                      layout.pos.col = matchidx$col))#
+    }#
+  }#
+}#
+PCOA_calcs <- function(dmat,mapfile,var,plottitle){#
+  	MYmetaEF = read.table(mapfile, header = T, sep = "\t", check.names = T, comment.char="")#
+  	set.seed(123)#
+  	MYpcoa <- cmdscale(as.dist(dmat), k = 2, eig=TRUE, add=TRUE) # Earlier had used dist function instead of vegdist, so was getting different values. dist did not support bray. #
+	eig2 <- eigenvals(MYpcoa)#
+	print(eig2 / sum(eig2)[1])#
+	pc1 <- round((eig2 / sum(eig2)[1])[1]*100,2)#
+	pc2 <- round((eig2 / sum(eig2)[1])[2]*100,2)#
+  	xaxis <- paste("PCoA1"," - ",pc1,"%",sep="")#
+  	yaxis <- paste("PCoA2"," - ",pc2,"%",sep="")#
+  	set.seed(123)#
+	adon <- tryCatch(adonis(as.dist(dmat) ~ MYmetaEF[,var], data=MYmetaEF, permutations = 1000, autotransform=T),error=function(e) NA)#
+	pvalue <- ifelse(is.na(adon$aov.tab[1,5]),"p-value = NA, variation = NA",paste("p-value = ",round(adon$aov.tab[1,6],3),", variation = ",round(adon$aov.tab[1,5],3)*100,"%",sep=""))#
+  PCOA <- data.frame(MYpcoa$points[,1],MYpcoa$points[,2], MYmetaEF[,var][!is.na(MYmetaEF[,var])])#
+	colnames(PCOA) <- c("PCoA1", "PCoA2" ,"comparison_groups")#
+	print (PCOA)#
+	plot.new()#
+  	#this is used to generate the confidence circles around the 95% confidence intervals#
+  	set.seed(123)#
+	ord<-ordiellipse(MYpcoa, PCOA$comparison_groups, display = "sites", kind = "se", conf = 0.95, label = T)#
+	df_ell <- data.frame()#
+	for(g in levels(PCOA$comparison_groups)){#
+		if (table(PCOA$comparison_groups)[[g]] > 2){#
+			df_ell <- rbind(df_ell, cbind(as.data.frame(with(PCOA[PCOA$comparison_groups==g,],#
+      		vegan:::veganCovEllipse(ord[[g]]$cov,ord[[g]]$center,ord[[g]]$scale))),comparison_groups=g))#
+    	}#
+	}#
+	plab <- gsub("^\\s+|\\s+$", "", strsplit(pvalue, ",")[[1]][1])#
+	varlab <- gsub("^\\s+|\\s+$", "", strsplit(pvalue, ",")[[1]][2])#
+	ppos <- max(MYpcoa$points[,2])#
+	varpos <- ppos - 0.025#
+	xpos <- min(MYpcoa$points[,1])+0.05#
+	# labs(color="Clinical Outcome") changes legend label. #
+	p1 <- ggplot(data = PCOA, aes(x=PCoA1, y=PCoA2)+ #
+	geom_point(aes(color = comparison_groups),size=6) +#
+	scale_color_manual(values = c("red","black"))+ #
+	geom_text(aes(label=rownames(PCOA))) +#
+	xlab(xaxis) + #
+	ylab(yaxis) + #
+	geom_path(data=df_ell, aes(x=Dim1, y=Dim2,colour=comparison_groups), size=1, linetype=2) + #
+	labs(title = plottitle, color="Phenotype") + #
+	theme(plot.title = element_text(size = 25),axis.text=element_text(size=15,color="black"),axis.title=element_text(size=20,color="black"), legend.key.size = unit(1,"cm"),legend.text=element_text(size=15),legend.title=element_text(size=15)) + #
+	annotate("text",x=c(xpos,xpos),y=c(ppos,varpos),label=c(plab,varlab))#
+	return (p1)#
+}#
+main_call <- function(dminp,mapfile,metavariable,plottitle){#
+	dmat <- read.table(dminp,header = T, sep = "\t", check.names = F, comment.char= "",row.names=1)#
+	u1 <- PCOA_calcs(dmat,mapfile,metavariable,plottitle)#
+	return (u1)#
+}#
+## Change these values:#
+setwd('/Users/alifaruqi/Desktop/Projects/Doug_R_Crash_Course/pcoa_id_labels_072815')#
+outputname <- "beta_diversity_figures"#
+inputfile <- c("bray_curtis_dm.txt","canberra_dm.txt","unweighted_unifrac_dm.txt","weighted_unifrac_dm.txt")#
+plotnames <- c("6 Week Samples - Mid-Colon (Bray-Curtis)","6 Week Samples - Mid-Colon (Canberra)","6 Week Samples - Mid-Colon (Unweighted UniFrac)","6 Week Samples - Mid-Colon (Weighted UniFrac)")#
+mapname <- "mapping_subset.txt"			#../../mapping_subset.txt#
+metavarname <- "MouseType"#
+# Doesn't change#
+#
+b1 <- main_call(inputfile[1],mapname,metavarname,plotnames[1])#
+b2 <- main_call(inputfile[2],mapname,metavarname,plotnames[2])#
+b3 <- main_call(inputfile[3],mapname,metavarname,plotnames[3])#
+b4 <- main_call(inputfile[4],mapname,metavarname,plotnames[4])#
+#print (b1)#
+#
+pdf(paste(outputname,".pdf",sep=""),height=15, width=20)#
+multiplot(b1,b2,b3,b4,cols=2)#
+dev.off()
+rm(list=ls())#
+require(grid)#
+require(vegan)#
+require(ggplot2)#
+require(gridExtra)#
+#
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {#
+  # Make a list from the ... arguments and plotlist#
+  plots <- c(list(...), plotlist)#
+  numPlots = length(plots)#
+  # If layout is NULL, then use 'cols' to determine layout#
+  if (is.null(layout)) {#
+    # Make the panel#
+    # ncol: Number of columns of plots#
+    # nrow: Number of rows needed, calculated from # of cols#
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),#
+                    ncol = cols, nrow = ceiling(numPlots/cols))#
+  }#
+ if (numPlots==1) {#
+    print(plots[[1]])#
+  } else {#
+    # Set up the page#
+    grid.newpage()#
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))#
+    # Make each plot, in the correct location#
+    for (i in 1:numPlots) {#
+      # Get the i,j matrix positions of the regions that contain this subplot#
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))#
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,#
+                                      layout.pos.col = matchidx$col))#
+    }#
+  }#
+}#
+PCOA_calcs <- function(dmat,mapfile,var,plottitle){#
+  	MYmetaEF = read.table(mapfile, header = T, sep = "\t", check.names = T, comment.char="")#
+  	set.seed(123)#
+  	MYpcoa <- cmdscale(as.dist(dmat), k = 2, eig=TRUE, add=TRUE) # Earlier had used dist function instead of vegdist, so was getting different values. dist did not support bray. #
+	eig2 <- eigenvals(MYpcoa)#
+	print(eig2 / sum(eig2)[1])#
+	pc1 <- round((eig2 / sum(eig2)[1])[1]*100,2)#
+	pc2 <- round((eig2 / sum(eig2)[1])[2]*100,2)#
+  	xaxis <- paste("PCoA1"," - ",pc1,"%",sep="")#
+  	yaxis <- paste("PCoA2"," - ",pc2,"%",sep="")#
+  	set.seed(123)#
+	adon <- tryCatch(adonis(as.dist(dmat) ~ MYmetaEF[,var], data=MYmetaEF, permutations = 1000, autotransform=T),error=function(e) NA)#
+	pvalue <- ifelse(is.na(adon$aov.tab[1,5]),"p-value = NA, variation = NA",paste("p-value = ",round(adon$aov.tab[1,6],3),", variation = ",round(adon$aov.tab[1,5],3)*100,"%",sep=""))#
+  PCOA <- data.frame(MYpcoa$points[,1],MYpcoa$points[,2], MYmetaEF[,var][!is.na(MYmetaEF[,var])])#
+	colnames(PCOA) <- c("PCoA1", "PCoA2" ,"comparison_groups")#
+	print (PCOA)#
+	plot.new()#
+  	#this is used to generate the confidence circles around the 95% confidence intervals#
+  	set.seed(123)#
+	ord<-ordiellipse(MYpcoa, PCOA$comparison_groups, display = "sites", kind = "se", conf = 0.95, label = T)#
+	df_ell <- data.frame()#
+	for(g in levels(PCOA$comparison_groups)){#
+		if (table(PCOA$comparison_groups)[[g]] > 2){#
+			df_ell <- rbind(df_ell, cbind(as.data.frame(with(PCOA[PCOA$comparison_groups==g,],#
+      		vegan:::veganCovEllipse(ord[[g]]$cov,ord[[g]]$center,ord[[g]]$scale))),comparison_groups=g))#
+    	}#
+	}#
+	plab <- gsub("^\\s+|\\s+$", "", strsplit(pvalue, ",")[[1]][1])#
+	varlab <- gsub("^\\s+|\\s+$", "", strsplit(pvalue, ",")[[1]][2])#
+	ppos <- max(MYpcoa$points[,2])#
+	varpos <- ppos - 0.025#
+	xpos <- min(MYpcoa$points[,1])+0.05#
+	# labs(color="Clinical Outcome") changes legend label. #
+	p1 <- ggplot(data = PCOA, aes(x=PCoA1, y=PCoA2,)) + #
+	geom_point(aes(color = comparison_groups),size=6) +#
+	scale_color_manual(values = c("red","black"))+ #
+	geom_text(aes(label=rownames(PCOA))) +#
+	xlab(xaxis) + #
+	ylab(yaxis) + #
+	geom_path(data=df_ell, aes(x=Dim1, y=Dim2,colour=comparison_groups), size=1, linetype=2) + #
+	labs(title = plottitle, color="Phenotype") + #
+	theme(plot.title = element_text(size = 25),axis.text=element_text(size=15,color="black"),axis.title=element_text(size=20,color="black"), legend.key.size = unit(1,"cm"),legend.text=element_text(size=15),legend.title=element_text(size=15)) + #
+	annotate("text",x=c(xpos,xpos),y=c(ppos,varpos),label=c(plab,varlab))#
+	return (p1)#
+}#
+main_call <- function(dminp,mapfile,metavariable,plottitle){#
+	dmat <- read.table(dminp,header = T, sep = "\t", check.names = F, comment.char= "",row.names=1)#
+	u1 <- PCOA_calcs(dmat,mapfile,metavariable,plottitle)#
+	return (u1)#
+}#
+## Change these values:#
+setwd('/Users/alifaruqi/Desktop/Projects/Doug_R_Crash_Course/pcoa_id_labels_072815')#
+outputname <- "beta_diversity_figures"#
+inputfile <- c("bray_curtis_dm.txt","canberra_dm.txt","unweighted_unifrac_dm.txt","weighted_unifrac_dm.txt")#
+plotnames <- c("6 Week Samples - Mid-Colon (Bray-Curtis)","6 Week Samples - Mid-Colon (Canberra)","6 Week Samples - Mid-Colon (Unweighted UniFrac)","6 Week Samples - Mid-Colon (Weighted UniFrac)")#
+mapname <- "mapping_subset.txt"			#../../mapping_subset.txt#
+metavarname <- "MouseType"#
+# Doesn't change#
+#
+b1 <- main_call(inputfile[1],mapname,metavarname,plotnames[1])#
+b2 <- main_call(inputfile[2],mapname,metavarname,plotnames[2])#
+b3 <- main_call(inputfile[3],mapname,metavarname,plotnames[3])#
+b4 <- main_call(inputfile[4],mapname,metavarname,plotnames[4])#
+#print (b1)#
+#
+pdf(paste(outputname,".pdf",sep=""),height=15, width=20)#
+multiplot(b1,b2,b3,b4,cols=2)#
+dev.off()
+rm(list=ls())#
+require(grid)#
+require(vegan)#
+require(ggplot2)#
+require(gridExtra)#
+#
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {#
+  # Make a list from the ... arguments and plotlist#
+  plots <- c(list(...), plotlist)#
+  numPlots = length(plots)#
+  # If layout is NULL, then use 'cols' to determine layout#
+  if (is.null(layout)) {#
+    # Make the panel#
+    # ncol: Number of columns of plots#
+    # nrow: Number of rows needed, calculated from # of cols#
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),#
+                    ncol = cols, nrow = ceiling(numPlots/cols))#
+  }#
+ if (numPlots==1) {#
+    print(plots[[1]])#
+  } else {#
+    # Set up the page#
+    grid.newpage()#
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))#
+    # Make each plot, in the correct location#
+    for (i in 1:numPlots) {#
+      # Get the i,j matrix positions of the regions that contain this subplot#
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))#
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,#
+                                      layout.pos.col = matchidx$col))#
+    }#
+  }#
+}#
+PCOA_calcs <- function(dmat,mapfile,var,plottitle){#
+  	MYmetaEF = read.table(mapfile, header = T, sep = "\t", check.names = T, comment.char="")#
+  	set.seed(123)#
+  	MYpcoa <- cmdscale(as.dist(dmat), k = 2, eig=TRUE, add=TRUE) # Earlier had used dist function instead of vegdist, so was getting different values. dist did not support bray. #
+	eig2 <- eigenvals(MYpcoa)#
+	print(eig2 / sum(eig2)[1])#
+	pc1 <- round((eig2 / sum(eig2)[1])[1]*100,2)#
+	pc2 <- round((eig2 / sum(eig2)[1])[2]*100,2)#
+  	xaxis <- paste("PCoA1"," - ",pc1,"%",sep="")#
+  	yaxis <- paste("PCoA2"," - ",pc2,"%",sep="")#
+  	set.seed(123)#
+	adon <- tryCatch(adonis(as.dist(dmat) ~ MYmetaEF[,var], data=MYmetaEF, permutations = 1000, autotransform=T),error=function(e) NA)#
+	pvalue <- ifelse(is.na(adon$aov.tab[1,5]),"p-value = NA, variation = NA",paste("p-value = ",round(adon$aov.tab[1,6],3),", variation = ",round(adon$aov.tab[1,5],3)*100,"%",sep=""))#
+  PCOA <- data.frame(MYpcoa$points[,1],MYpcoa$points[,2], MYmetaEF[,var][!is.na(MYmetaEF[,var])])#
+	colnames(PCOA) <- c("PCoA1", "PCoA2" ,"comparison_groups")#
+	print (PCOA)#
+	plot.new()#
+  	#this is used to generate the confidence circles around the 95% confidence intervals#
+  	set.seed(123)#
+	ord<-ordiellipse(MYpcoa, PCOA$comparison_groups, display = "sites", kind = "se", conf = 0.95, label = T)#
+	df_ell <- data.frame()#
+	for(g in levels(PCOA$comparison_groups)){#
+		if (table(PCOA$comparison_groups)[[g]] > 2){#
+			df_ell <- rbind(df_ell, cbind(as.data.frame(with(PCOA[PCOA$comparison_groups==g,],#
+      		vegan:::veganCovEllipse(ord[[g]]$cov,ord[[g]]$center,ord[[g]]$scale))),comparison_groups=g))#
+    	}#
+	}#
+	plab <- gsub("^\\s+|\\s+$", "", strsplit(pvalue, ",")[[1]][1])#
+	varlab <- gsub("^\\s+|\\s+$", "", strsplit(pvalue, ",")[[1]][2])#
+	ppos <- max(MYpcoa$points[,2])#
+	varpos <- ppos - 0.025#
+	xpos <- min(MYpcoa$points[,1])+0.05#
+	# labs(color="Clinical Outcome") changes legend label. #
+	p1 <- ggplot(data = PCOA, aes(x=PCoA1, y=PCoA2,)) + #
+	#geom_point(aes(color = comparison_groups),size=6) +#
+	#scale_color_manual(values = c("red","black"))+ #
+	geom_text(aes(label=rownames(PCOA))) #+#
+	#xlab(xaxis) + #
+	#ylab(yaxis) + #
+	#geom_path(data=df_ell, aes(x=Dim1, y=Dim2,colour=comparison_groups), size=1, linetype=2) + #
+	#labs(title = plottitle, color="Phenotype") + #
+	#theme(plot.title = element_text(size = 25),axis.text=element_text(size=15,color="black"),axis.title=element_text(size=20,color="black"), legend.key.size = unit(1,"cm"),legend.text=element_text(size=15),legend.title=element_text(size=15)) + #
+	#annotate("text",x=c(xpos,xpos),y=c(ppos,varpos),label=c(plab,varlab))#
+	return (p1)#
+}#
+main_call <- function(dminp,mapfile,metavariable,plottitle){#
+	dmat <- read.table(dminp,header = T, sep = "\t", check.names = F, comment.char= "",row.names=1)#
+	u1 <- PCOA_calcs(dmat,mapfile,metavariable,plottitle)#
+	return (u1)#
+}#
+## Change these values:#
+setwd('/Users/alifaruqi/Desktop/Projects/Doug_R_Crash_Course/pcoa_id_labels_072815')#
+outputname <- "beta_diversity_figures"#
+inputfile <- c("bray_curtis_dm.txt","canberra_dm.txt","unweighted_unifrac_dm.txt","weighted_unifrac_dm.txt")#
+plotnames <- c("6 Week Samples - Mid-Colon (Bray-Curtis)","6 Week Samples - Mid-Colon (Canberra)","6 Week Samples - Mid-Colon (Unweighted UniFrac)","6 Week Samples - Mid-Colon (Weighted UniFrac)")#
+mapname <- "mapping_subset.txt"			#../../mapping_subset.txt#
+metavarname <- "MouseType"#
+# Doesn't change#
+#
+b1 <- main_call(inputfile[1],mapname,metavarname,plotnames[1])#
+b2 <- main_call(inputfile[2],mapname,metavarname,plotnames[2])#
+b3 <- main_call(inputfile[3],mapname,metavarname,plotnames[3])#
+b4 <- main_call(inputfile[4],mapname,metavarname,plotnames[4])#
+#print (b1)#
+#
+pdf(paste(outputname,".pdf",sep=""),height=15, width=20)#
+multiplot(b1,b2,b3,b4,cols=2)#
+dev.off()
+rm(list=ls())#
+require(grid)#
+require(vegan)#
+require(ggplot2)#
+require(gridExtra)#
+#
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {#
+  # Make a list from the ... arguments and plotlist#
+  plots <- c(list(...), plotlist)#
+  numPlots = length(plots)#
+  # If layout is NULL, then use 'cols' to determine layout#
+  if (is.null(layout)) {#
+    # Make the panel#
+    # ncol: Number of columns of plots#
+    # nrow: Number of rows needed, calculated from # of cols#
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),#
+                    ncol = cols, nrow = ceiling(numPlots/cols))#
+  }#
+ if (numPlots==1) {#
+    print(plots[[1]])#
+  } else {#
+    # Set up the page#
+    grid.newpage()#
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))#
+    # Make each plot, in the correct location#
+    for (i in 1:numPlots) {#
+      # Get the i,j matrix positions of the regions that contain this subplot#
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))#
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,#
+                                      layout.pos.col = matchidx$col))#
+    }#
+  }#
+}#
+PCOA_calcs <- function(dmat,mapfile,var,plottitle){#
+  	MYmetaEF = read.table(mapfile, header = T, sep = "\t", check.names = T, comment.char="")#
+  	set.seed(123)#
+  	MYpcoa <- cmdscale(as.dist(dmat), k = 2, eig=TRUE, add=TRUE) # Earlier had used dist function instead of vegdist, so was getting different values. dist did not support bray. #
+	eig2 <- eigenvals(MYpcoa)#
+	print(eig2 / sum(eig2)[1])#
+	pc1 <- round((eig2 / sum(eig2)[1])[1]*100,2)#
+	pc2 <- round((eig2 / sum(eig2)[1])[2]*100,2)#
+  	xaxis <- paste("PCoA1"," - ",pc1,"%",sep="")#
+  	yaxis <- paste("PCoA2"," - ",pc2,"%",sep="")#
+  	set.seed(123)#
+	adon <- tryCatch(adonis(as.dist(dmat) ~ MYmetaEF[,var], data=MYmetaEF, permutations = 1000, autotransform=T),error=function(e) NA)#
+	pvalue <- ifelse(is.na(adon$aov.tab[1,5]),"p-value = NA, variation = NA",paste("p-value = ",round(adon$aov.tab[1,6],3),", variation = ",round(adon$aov.tab[1,5],3)*100,"%",sep=""))#
+  PCOA <- data.frame(MYpcoa$points[,1],MYpcoa$points[,2], MYmetaEF[,var][!is.na(MYmetaEF[,var])])#
+	colnames(PCOA) <- c("PCoA1", "PCoA2" ,"comparison_groups")#
+	print (PCOA)#
+	plot.new()#
+  	#this is used to generate the confidence circles around the 95% confidence intervals#
+  	set.seed(123)#
+	ord<-ordiellipse(MYpcoa, PCOA$comparison_groups, display = "sites", kind = "se", conf = 0.95, label = T)#
+	df_ell <- data.frame()#
+	for(g in levels(PCOA$comparison_groups)){#
+		if (table(PCOA$comparison_groups)[[g]] > 2){#
+			df_ell <- rbind(df_ell, cbind(as.data.frame(with(PCOA[PCOA$comparison_groups==g,],#
+      		vegan:::veganCovEllipse(ord[[g]]$cov,ord[[g]]$center,ord[[g]]$scale))),comparison_groups=g))#
+    	}#
+	}#
+	plab <- gsub("^\\s+|\\s+$", "", strsplit(pvalue, ",")[[1]][1])#
+	varlab <- gsub("^\\s+|\\s+$", "", strsplit(pvalue, ",")[[1]][2])#
+	ppos <- max(MYpcoa$points[,2])#
+	varpos <- ppos - 0.025#
+	xpos <- min(MYpcoa$points[,1])+0.05#
+	# labs(color="Clinical Outcome") changes legend label. #
+	p1 <- ggplot(data = PCOA, aes(x=PCoA1, y=PCoA2,)) + #
+	#geom_point(aes(color = comparison_groups),size=6) +#
+	#scale_color_manual(values = c("red","black"))+ #
+	geom_text() #+#
+	#xlab(xaxis) + #
+	#ylab(yaxis) + #
+	#geom_path(data=df_ell, aes(x=Dim1, y=Dim2,colour=comparison_groups), size=1, linetype=2) + #
+	#labs(title = plottitle, color="Phenotype") + #
+	#theme(plot.title = element_text(size = 25),axis.text=element_text(size=15,color="black"),axis.title=element_text(size=20,color="black"), legend.key.size = unit(1,"cm"),legend.text=element_text(size=15),legend.title=element_text(size=15)) + #
+	#annotate("text",x=c(xpos,xpos),y=c(ppos,varpos),label=c(plab,varlab))#
+	return (p1)#
+}#
+main_call <- function(dminp,mapfile,metavariable,plottitle){#
+	dmat <- read.table(dminp,header = T, sep = "\t", check.names = F, comment.char= "",row.names=1)#
+	u1 <- PCOA_calcs(dmat,mapfile,metavariable,plottitle)#
+	return (u1)#
+}#
+## Change these values:#
+setwd('/Users/alifaruqi/Desktop/Projects/Doug_R_Crash_Course/pcoa_id_labels_072815')#
+outputname <- "beta_diversity_figures"#
+inputfile <- c("bray_curtis_dm.txt","canberra_dm.txt","unweighted_unifrac_dm.txt","weighted_unifrac_dm.txt")#
+plotnames <- c("6 Week Samples - Mid-Colon (Bray-Curtis)","6 Week Samples - Mid-Colon (Canberra)","6 Week Samples - Mid-Colon (Unweighted UniFrac)","6 Week Samples - Mid-Colon (Weighted UniFrac)")#
+mapname <- "mapping_subset.txt"			#../../mapping_subset.txt#
+metavarname <- "MouseType"#
+# Doesn't change#
+#
+b1 <- main_call(inputfile[1],mapname,metavarname,plotnames[1])#
+b2 <- main_call(inputfile[2],mapname,metavarname,plotnames[2])#
+b3 <- main_call(inputfile[3],mapname,metavarname,plotnames[3])#
+b4 <- main_call(inputfile[4],mapname,metavarname,plotnames[4])#
+#print (b1)#
+#
+pdf(paste(outputname,".pdf",sep=""),height=15, width=20)#
+multiplot(b1,b2,b3,b4,cols=2)#
+dev.off()
+rm(list=ls())#
+require(grid)#
+require(vegan)#
+require(ggplot2)#
+require(gridExtra)#
+#
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {#
+  # Make a list from the ... arguments and plotlist#
+  plots <- c(list(...), plotlist)#
+  numPlots = length(plots)#
+  # If layout is NULL, then use 'cols' to determine layout#
+  if (is.null(layout)) {#
+    # Make the panel#
+    # ncol: Number of columns of plots#
+    # nrow: Number of rows needed, calculated from # of cols#
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),#
+                    ncol = cols, nrow = ceiling(numPlots/cols))#
+  }#
+ if (numPlots==1) {#
+    print(plots[[1]])#
+  } else {#
+    # Set up the page#
+    grid.newpage()#
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))#
+    # Make each plot, in the correct location#
+    for (i in 1:numPlots) {#
+      # Get the i,j matrix positions of the regions that contain this subplot#
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))#
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,#
+                                      layout.pos.col = matchidx$col))#
+    }#
+  }#
+}#
+PCOA_calcs <- function(dmat,mapfile,var,plottitle){#
+  	MYmetaEF = read.table(mapfile, header = T, sep = "\t", check.names = T, comment.char="")#
+  	set.seed(123)#
+  	MYpcoa <- cmdscale(as.dist(dmat), k = 2, eig=TRUE, add=TRUE) # Earlier had used dist function instead of vegdist, so was getting different values. dist did not support bray. #
+	eig2 <- eigenvals(MYpcoa)#
+	print(eig2 / sum(eig2)[1])#
+	pc1 <- round((eig2 / sum(eig2)[1])[1]*100,2)#
+	pc2 <- round((eig2 / sum(eig2)[1])[2]*100,2)#
+  	xaxis <- paste("PCoA1"," - ",pc1,"%",sep="")#
+  	yaxis <- paste("PCoA2"," - ",pc2,"%",sep="")#
+  	set.seed(123)#
+	adon <- tryCatch(adonis(as.dist(dmat) ~ MYmetaEF[,var], data=MYmetaEF, permutations = 1000, autotransform=T),error=function(e) NA)#
+	pvalue <- ifelse(is.na(adon$aov.tab[1,5]),"p-value = NA, variation = NA",paste("p-value = ",round(adon$aov.tab[1,6],3),", variation = ",round(adon$aov.tab[1,5],3)*100,"%",sep=""))#
+  PCOA <- data.frame(MYpcoa$points[,1],MYpcoa$points[,2], MYmetaEF[,var][!is.na(MYmetaEF[,var])])#
+	colnames(PCOA) <- c("PCoA1", "PCoA2" ,"comparison_groups")#
+	print (PCOA)#
+	plot.new()#
+  	#this is used to generate the confidence circles around the 95% confidence intervals#
+  	set.seed(123)#
+	ord<-ordiellipse(MYpcoa, PCOA$comparison_groups, display = "sites", kind = "se", conf = 0.95, label = T)#
+	df_ell <- data.frame()#
+	for(g in levels(PCOA$comparison_groups)){#
+		if (table(PCOA$comparison_groups)[[g]] > 2){#
+			df_ell <- rbind(df_ell, cbind(as.data.frame(with(PCOA[PCOA$comparison_groups==g,],#
+      		vegan:::veganCovEllipse(ord[[g]]$cov,ord[[g]]$center,ord[[g]]$scale))),comparison_groups=g))#
+    	}#
+	}#
+	plab <- gsub("^\\s+|\\s+$", "", strsplit(pvalue, ",")[[1]][1])#
+	varlab <- gsub("^\\s+|\\s+$", "", strsplit(pvalue, ",")[[1]][2])#
+	ppos <- max(MYpcoa$points[,2])#
+	varpos <- ppos - 0.025#
+	xpos <- min(MYpcoa$points[,1])+0.05#
+	PCOA <- cbind(PCOA,rownames(PCOA))#
+	print (PCOA)#
+	# labs(color="Clinical Outcome") changes legend label. #
+	p1 <- ggplot(data = PCOA, aes(x=PCoA1, y=PCoA2,)) + #
+	#geom_point(aes(color = comparison_groups),size=6) +#
+	#scale_color_manual(values = c("red","black"))+ #
+	geom_text(aes(label=rownames(PCOA))) #+#
+	#xlab(xaxis) + #
+	#ylab(yaxis) + #
+	#geom_path(data=df_ell, aes(x=Dim1, y=Dim2,colour=comparison_groups), size=1, linetype=2) + #
+	#labs(title = plottitle, color="Phenotype") + #
+	#theme(plot.title = element_text(size = 25),axis.text=element_text(size=15,color="black"),axis.title=element_text(size=20,color="black"), legend.key.size = unit(1,"cm"),legend.text=element_text(size=15),legend.title=element_text(size=15)) + #
+	#annotate("text",x=c(xpos,xpos),y=c(ppos,varpos),label=c(plab,varlab))#
+	return (p1)#
+}#
+main_call <- function(dminp,mapfile,metavariable,plottitle){#
+	dmat <- read.table(dminp,header = T, sep = "\t", check.names = F, comment.char= "",row.names=1)#
+	u1 <- PCOA_calcs(dmat,mapfile,metavariable,plottitle)#
+	return (u1)#
+}#
+## Change these values:#
+setwd('/Users/alifaruqi/Desktop/Projects/Doug_R_Crash_Course/pcoa_id_labels_072815')#
+outputname <- "beta_diversity_figures"#
+inputfile <- c("bray_curtis_dm.txt","canberra_dm.txt","unweighted_unifrac_dm.txt","weighted_unifrac_dm.txt")#
+plotnames <- c("6 Week Samples - Mid-Colon (Bray-Curtis)","6 Week Samples - Mid-Colon (Canberra)","6 Week Samples - Mid-Colon (Unweighted UniFrac)","6 Week Samples - Mid-Colon (Weighted UniFrac)")#
+mapname <- "mapping_subset.txt"			#../../mapping_subset.txt#
+metavarname <- "MouseType"#
+# Doesn't change#
+#
+b1 <- main_call(inputfile[1],mapname,metavarname,plotnames[1])#
+b2 <- main_call(inputfile[2],mapname,metavarname,plotnames[2])#
+b3 <- main_call(inputfile[3],mapname,metavarname,plotnames[3])#
+b4 <- main_call(inputfile[4],mapname,metavarname,plotnames[4])#
+#print (b1)#
+#
+pdf(paste(outputname,".pdf",sep=""),height=15, width=20)#
+multiplot(b1,b2,b3,b4,cols=2)#
+dev.off()
+rm(list=ls())#
+require(grid)#
+require(vegan)#
+require(ggplot2)#
+require(gridExtra)#
+#
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {#
+  # Make a list from the ... arguments and plotlist#
+  plots <- c(list(...), plotlist)#
+  numPlots = length(plots)#
+  # If layout is NULL, then use 'cols' to determine layout#
+  if (is.null(layout)) {#
+    # Make the panel#
+    # ncol: Number of columns of plots#
+    # nrow: Number of rows needed, calculated from # of cols#
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),#
+                    ncol = cols, nrow = ceiling(numPlots/cols))#
+  }#
+ if (numPlots==1) {#
+    print(plots[[1]])#
+  } else {#
+    # Set up the page#
+    grid.newpage()#
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))#
+    # Make each plot, in the correct location#
+    for (i in 1:numPlots) {#
+      # Get the i,j matrix positions of the regions that contain this subplot#
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))#
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,#
+                                      layout.pos.col = matchidx$col))#
+    }#
+  }#
+}#
+PCOA_calcs <- function(dmat,mapfile,var,plottitle){#
+  	MYmetaEF = read.table(mapfile, header = T, sep = "\t", check.names = T, comment.char="")#
+  	set.seed(123)#
+  	MYpcoa <- cmdscale(as.dist(dmat), k = 2, eig=TRUE, add=TRUE) # Earlier had used dist function instead of vegdist, so was getting different values. dist did not support bray. #
+	eig2 <- eigenvals(MYpcoa)#
+	print(eig2 / sum(eig2)[1])#
+	pc1 <- round((eig2 / sum(eig2)[1])[1]*100,2)#
+	pc2 <- round((eig2 / sum(eig2)[1])[2]*100,2)#
+  	xaxis <- paste("PCoA1"," - ",pc1,"%",sep="")#
+  	yaxis <- paste("PCoA2"," - ",pc2,"%",sep="")#
+  	set.seed(123)#
+	adon <- tryCatch(adonis(as.dist(dmat) ~ MYmetaEF[,var], data=MYmetaEF, permutations = 1000, autotransform=T),error=function(e) NA)#
+	pvalue <- ifelse(is.na(adon$aov.tab[1,5]),"p-value = NA, variation = NA",paste("p-value = ",round(adon$aov.tab[1,6],3),", variation = ",round(adon$aov.tab[1,5],3)*100,"%",sep=""))#
+  PCOA <- data.frame(MYpcoa$points[,1],MYpcoa$points[,2], MYmetaEF[,var][!is.na(MYmetaEF[,var])])#
+	colnames(PCOA) <- c("PCoA1", "PCoA2" ,"comparison_groups")#
+	print (PCOA)#
+	plot.new()#
+  	#this is used to generate the confidence circles around the 95% confidence intervals#
+  	set.seed(123)#
+	ord<-ordiellipse(MYpcoa, PCOA$comparison_groups, display = "sites", kind = "se", conf = 0.95, label = T)#
+	df_ell <- data.frame()#
+	for(g in levels(PCOA$comparison_groups)){#
+		if (table(PCOA$comparison_groups)[[g]] > 2){#
+			df_ell <- rbind(df_ell, cbind(as.data.frame(with(PCOA[PCOA$comparison_groups==g,],#
+      		vegan:::veganCovEllipse(ord[[g]]$cov,ord[[g]]$center,ord[[g]]$scale))),comparison_groups=g))#
+    	}#
+	}#
+	plab <- gsub("^\\s+|\\s+$", "", strsplit(pvalue, ",")[[1]][1])#
+	varlab <- gsub("^\\s+|\\s+$", "", strsplit(pvalue, ",")[[1]][2])#
+	ppos <- max(MYpcoa$points[,2])#
+	varpos <- ppos - 0.025#
+	xpos <- min(MYpcoa$points[,1])+0.05#
+	PCOA <- cbind(PCOA,rownames(PCOA))#
+	colnames(PCOA) <- c(colnames(PCOA)[1:length(colnames(PCOA))-1],"samplenames")#
+	print (PCOA)#
+	# labs(color="Clinical Outcome") changes legend label. #
+	p1 <- ggplot(data = PCOA, aes(x=PCoA1, y=PCoA2,)) + #
+	#geom_point(aes(color = comparison_groups),size=6) +#
+	#scale_color_manual(values = c("red","black"))+ #
+	geom_text(aes(label=rownames(PCOA))) #+#
+	#xlab(xaxis) + #
+	#ylab(yaxis) + #
+	#geom_path(data=df_ell, aes(x=Dim1, y=Dim2,colour=comparison_groups), size=1, linetype=2) + #
+	#labs(title = plottitle, color="Phenotype") + #
+	#theme(plot.title = element_text(size = 25),axis.text=element_text(size=15,color="black"),axis.title=element_text(size=20,color="black"), legend.key.size = unit(1,"cm"),legend.text=element_text(size=15),legend.title=element_text(size=15)) + #
+	#annotate("text",x=c(xpos,xpos),y=c(ppos,varpos),label=c(plab,varlab))#
+	return (p1)#
+}#
+main_call <- function(dminp,mapfile,metavariable,plottitle){#
+	dmat <- read.table(dminp,header = T, sep = "\t", check.names = F, comment.char= "",row.names=1)#
+	u1 <- PCOA_calcs(dmat,mapfile,metavariable,plottitle)#
+	return (u1)#
+}#
+## Change these values:#
+setwd('/Users/alifaruqi/Desktop/Projects/Doug_R_Crash_Course/pcoa_id_labels_072815')#
+outputname <- "beta_diversity_figures"#
+inputfile <- c("bray_curtis_dm.txt","canberra_dm.txt","unweighted_unifrac_dm.txt","weighted_unifrac_dm.txt")#
+plotnames <- c("6 Week Samples - Mid-Colon (Bray-Curtis)","6 Week Samples - Mid-Colon (Canberra)","6 Week Samples - Mid-Colon (Unweighted UniFrac)","6 Week Samples - Mid-Colon (Weighted UniFrac)")#
+mapname <- "mapping_subset.txt"			#../../mapping_subset.txt#
+metavarname <- "MouseType"#
+# Doesn't change#
+#
+b1 <- main_call(inputfile[1],mapname,metavarname,plotnames[1])#
+b2 <- main_call(inputfile[2],mapname,metavarname,plotnames[2])#
+b3 <- main_call(inputfile[3],mapname,metavarname,plotnames[3])#
+b4 <- main_call(inputfile[4],mapname,metavarname,plotnames[4])#
+#print (b1)#
+#
+pdf(paste(outputname,".pdf",sep=""),height=15, width=20)#
+multiplot(b1,b2,b3,b4,cols=2)#
+dev.off()
+rm(list=ls())#
+require(grid)#
+require(vegan)#
+require(ggplot2)#
+require(gridExtra)#
+#
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {#
+  # Make a list from the ... arguments and plotlist#
+  plots <- c(list(...), plotlist)#
+  numPlots = length(plots)#
+  # If layout is NULL, then use 'cols' to determine layout#
+  if (is.null(layout)) {#
+    # Make the panel#
+    # ncol: Number of columns of plots#
+    # nrow: Number of rows needed, calculated from # of cols#
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),#
+                    ncol = cols, nrow = ceiling(numPlots/cols))#
+  }#
+ if (numPlots==1) {#
+    print(plots[[1]])#
+  } else {#
+    # Set up the page#
+    grid.newpage()#
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))#
+    # Make each plot, in the correct location#
+    for (i in 1:numPlots) {#
+      # Get the i,j matrix positions of the regions that contain this subplot#
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))#
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,#
+                                      layout.pos.col = matchidx$col))#
+    }#
+  }#
+}#
+PCOA_calcs <- function(dmat,mapfile,var,plottitle){#
+  	MYmetaEF = read.table(mapfile, header = T, sep = "\t", check.names = T, comment.char="")#
+  	set.seed(123)#
+  	MYpcoa <- cmdscale(as.dist(dmat), k = 2, eig=TRUE, add=TRUE) # Earlier had used dist function instead of vegdist, so was getting different values. dist did not support bray. #
+	eig2 <- eigenvals(MYpcoa)#
+	print(eig2 / sum(eig2)[1])#
+	pc1 <- round((eig2 / sum(eig2)[1])[1]*100,2)#
+	pc2 <- round((eig2 / sum(eig2)[1])[2]*100,2)#
+  	xaxis <- paste("PCoA1"," - ",pc1,"%",sep="")#
+  	yaxis <- paste("PCoA2"," - ",pc2,"%",sep="")#
+  	set.seed(123)#
+	adon <- tryCatch(adonis(as.dist(dmat) ~ MYmetaEF[,var], data=MYmetaEF, permutations = 1000, autotransform=T),error=function(e) NA)#
+	pvalue <- ifelse(is.na(adon$aov.tab[1,5]),"p-value = NA, variation = NA",paste("p-value = ",round(adon$aov.tab[1,6],3),", variation = ",round(adon$aov.tab[1,5],3)*100,"%",sep=""))#
+  PCOA <- data.frame(MYpcoa$points[,1],MYpcoa$points[,2], MYmetaEF[,var][!is.na(MYmetaEF[,var])])#
+	colnames(PCOA) <- c("PCoA1", "PCoA2" ,"comparison_groups")#
+	print (PCOA)#
+	plot.new()#
+  	#this is used to generate the confidence circles around the 95% confidence intervals#
+  	set.seed(123)#
+	ord<-ordiellipse(MYpcoa, PCOA$comparison_groups, display = "sites", kind = "se", conf = 0.95, label = T)#
+	df_ell <- data.frame()#
+	for(g in levels(PCOA$comparison_groups)){#
+		if (table(PCOA$comparison_groups)[[g]] > 2){#
+			df_ell <- rbind(df_ell, cbind(as.data.frame(with(PCOA[PCOA$comparison_groups==g,],#
+      		vegan:::veganCovEllipse(ord[[g]]$cov,ord[[g]]$center,ord[[g]]$scale))),comparison_groups=g))#
+    	}#
+	}#
+	plab <- gsub("^\\s+|\\s+$", "", strsplit(pvalue, ",")[[1]][1])#
+	varlab <- gsub("^\\s+|\\s+$", "", strsplit(pvalue, ",")[[1]][2])#
+	ppos <- max(MYpcoa$points[,2])#
+	varpos <- ppos - 0.025#
+	xpos <- min(MYpcoa$points[,1])+0.05#
+	PCOA <- cbind(PCOA,rownames(PCOA))#
+	colnames(PCOA) <- c(colnames(PCOA)[1:length(colnames(PCOA))-1],"samplenames")#
+	print (PCOA)#
+	# labs(color="Clinical Outcome") changes legend label. #
+	p1 <- ggplot(data = PCOA, aes(x=PCoA1, y=PCoA2,)) + #
+	#geom_point(aes(color = comparison_groups),size=6) +#
+	#scale_color_manual(values = c("red","black"))+ #
+	geom_text(aes(label=samplenames)) #+#
+	#xlab(xaxis) + #
+	#ylab(yaxis) + #
+	#geom_path(data=df_ell, aes(x=Dim1, y=Dim2,colour=comparison_groups), size=1, linetype=2) + #
+	#labs(title = plottitle, color="Phenotype") + #
+	#theme(plot.title = element_text(size = 25),axis.text=element_text(size=15,color="black"),axis.title=element_text(size=20,color="black"), legend.key.size = unit(1,"cm"),legend.text=element_text(size=15),legend.title=element_text(size=15)) + #
+	#annotate("text",x=c(xpos,xpos),y=c(ppos,varpos),label=c(plab,varlab))#
+	return (p1)#
+}#
+main_call <- function(dminp,mapfile,metavariable,plottitle){#
+	dmat <- read.table(dminp,header = T, sep = "\t", check.names = F, comment.char= "",row.names=1)#
+	u1 <- PCOA_calcs(dmat,mapfile,metavariable,plottitle)#
+	return (u1)#
+}#
+## Change these values:#
+setwd('/Users/alifaruqi/Desktop/Projects/Doug_R_Crash_Course/pcoa_id_labels_072815')#
+outputname <- "beta_diversity_figures"#
+inputfile <- c("bray_curtis_dm.txt","canberra_dm.txt","unweighted_unifrac_dm.txt","weighted_unifrac_dm.txt")#
+plotnames <- c("6 Week Samples - Mid-Colon (Bray-Curtis)","6 Week Samples - Mid-Colon (Canberra)","6 Week Samples - Mid-Colon (Unweighted UniFrac)","6 Week Samples - Mid-Colon (Weighted UniFrac)")#
+mapname <- "mapping_subset.txt"			#../../mapping_subset.txt#
+metavarname <- "MouseType"#
+# Doesn't change#
+#
+b1 <- main_call(inputfile[1],mapname,metavarname,plotnames[1])#
+b2 <- main_call(inputfile[2],mapname,metavarname,plotnames[2])#
+b3 <- main_call(inputfile[3],mapname,metavarname,plotnames[3])#
+b4 <- main_call(inputfile[4],mapname,metavarname,plotnames[4])#
+#print (b1)#
+#
+pdf(paste(outputname,".pdf",sep=""),height=15, width=20)#
+multiplot(b1,b2,b3,b4,cols=2)#
+dev.off()
+rm(list=ls())#
+require(grid)#
+require(vegan)#
+require(ggplot2)#
+require(gridExtra)#
+#
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {#
+  # Make a list from the ... arguments and plotlist#
+  plots <- c(list(...), plotlist)#
+  numPlots = length(plots)#
+  # If layout is NULL, then use 'cols' to determine layout#
+  if (is.null(layout)) {#
+    # Make the panel#
+    # ncol: Number of columns of plots#
+    # nrow: Number of rows needed, calculated from # of cols#
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),#
+                    ncol = cols, nrow = ceiling(numPlots/cols))#
+  }#
+ if (numPlots==1) {#
+    print(plots[[1]])#
+  } else {#
+    # Set up the page#
+    grid.newpage()#
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))#
+    # Make each plot, in the correct location#
+    for (i in 1:numPlots) {#
+      # Get the i,j matrix positions of the regions that contain this subplot#
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))#
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,#
+                                      layout.pos.col = matchidx$col))#
+    }#
+  }#
+}#
+PCOA_calcs <- function(dmat,mapfile,var,plottitle){#
+  	MYmetaEF = read.table(mapfile, header = T, sep = "\t", check.names = T, comment.char="")#
+  	set.seed(123)#
+  	MYpcoa <- cmdscale(as.dist(dmat), k = 2, eig=TRUE, add=TRUE) # Earlier had used dist function instead of vegdist, so was getting different values. dist did not support bray. #
+	eig2 <- eigenvals(MYpcoa)#
+	print(eig2 / sum(eig2)[1])#
+	pc1 <- round((eig2 / sum(eig2)[1])[1]*100,2)#
+	pc2 <- round((eig2 / sum(eig2)[1])[2]*100,2)#
+  	xaxis <- paste("PCoA1"," - ",pc1,"%",sep="")#
+  	yaxis <- paste("PCoA2"," - ",pc2,"%",sep="")#
+  	set.seed(123)#
+	adon <- tryCatch(adonis(as.dist(dmat) ~ MYmetaEF[,var], data=MYmetaEF, permutations = 1000, autotransform=T),error=function(e) NA)#
+	pvalue <- ifelse(is.na(adon$aov.tab[1,5]),"p-value = NA, variation = NA",paste("p-value = ",round(adon$aov.tab[1,6],3),", variation = ",round(adon$aov.tab[1,5],3)*100,"%",sep=""))#
+  PCOA <- data.frame(MYpcoa$points[,1],MYpcoa$points[,2], MYmetaEF[,var][!is.na(MYmetaEF[,var])])#
+	colnames(PCOA) <- c("PCoA1", "PCoA2" ,"comparison_groups")#
+	print (PCOA)#
+	plot.new()#
+  	#this is used to generate the confidence circles around the 95% confidence intervals#
+  	set.seed(123)#
+	ord<-ordiellipse(MYpcoa, PCOA$comparison_groups, display = "sites", kind = "se", conf = 0.95, label = T)#
+	df_ell <- data.frame()#
+	for(g in levels(PCOA$comparison_groups)){#
+		if (table(PCOA$comparison_groups)[[g]] > 2){#
+			df_ell <- rbind(df_ell, cbind(as.data.frame(with(PCOA[PCOA$comparison_groups==g,],#
+      		vegan:::veganCovEllipse(ord[[g]]$cov,ord[[g]]$center,ord[[g]]$scale))),comparison_groups=g))#
+    	}#
+	}#
+	plab <- gsub("^\\s+|\\s+$", "", strsplit(pvalue, ",")[[1]][1])#
+	varlab <- gsub("^\\s+|\\s+$", "", strsplit(pvalue, ",")[[1]][2])#
+	ppos <- max(MYpcoa$points[,2])#
+	varpos <- ppos - 0.025#
+	xpos <- min(MYpcoa$points[,1])+0.05#
+	PCOA <- cbind(PCOA,rownames(PCOA))#
+	colnames(PCOA) <- c(colnames(PCOA)[1:length(colnames(PCOA))-1],"samplenames")#
+	print (PCOA)#
+	# labs(color="Clinical Outcome") changes legend label. #
+	p1 <- ggplot(data = PCOA, aes(x=PCoA1, y=PCoA2,)) + #
+	geom_point(aes(color = comparison_groups),size=6) +#
+	scale_color_manual(values = c("red","black"))+ #
+	geom_text(aes(label=samplenames)) +#
+	xlab(xaxis) + #
+	ylab(yaxis) + #
+	geom_path(data=df_ell, aes(x=Dim1, y=Dim2,colour=comparison_groups), size=1, linetype=2) + #
+	labs(title = plottitle, color="Phenotype") + #
+	theme(plot.title = element_text(size = 25),axis.text=element_text(size=15,color="black"),axis.title=element_text(size=20,color="black"), legend.key.size = unit(1,"cm"),legend.text=element_text(size=15),legend.title=element_text(size=15)) + #
+	annotate("text",x=c(xpos,xpos),y=c(ppos,varpos),label=c(plab,varlab))#
+	return (p1)#
+}#
+main_call <- function(dminp,mapfile,metavariable,plottitle){#
+	dmat <- read.table(dminp,header = T, sep = "\t", check.names = F, comment.char= "",row.names=1)#
+	u1 <- PCOA_calcs(dmat,mapfile,metavariable,plottitle)#
+	return (u1)#
+}#
+## Change these values:#
+setwd('/Users/alifaruqi/Desktop/Projects/Doug_R_Crash_Course/pcoa_id_labels_072815')#
+outputname <- "beta_diversity_figures"#
+inputfile <- c("bray_curtis_dm.txt","canberra_dm.txt","unweighted_unifrac_dm.txt","weighted_unifrac_dm.txt")#
+plotnames <- c("6 Week Samples - Mid-Colon (Bray-Curtis)","6 Week Samples - Mid-Colon (Canberra)","6 Week Samples - Mid-Colon (Unweighted UniFrac)","6 Week Samples - Mid-Colon (Weighted UniFrac)")#
+mapname <- "mapping_subset.txt"			#../../mapping_subset.txt#
+metavarname <- "MouseType"#
+# Doesn't change#
+#
+b1 <- main_call(inputfile[1],mapname,metavarname,plotnames[1])#
+b2 <- main_call(inputfile[2],mapname,metavarname,plotnames[2])#
+b3 <- main_call(inputfile[3],mapname,metavarname,plotnames[3])#
+b4 <- main_call(inputfile[4],mapname,metavarname,plotnames[4])#
+#print (b1)#
+#
+pdf(paste(outputname,".pdf",sep=""),height=15, width=20)#
+multiplot(b1,b2,b3,b4,cols=2)#
+dev.off()
+rm(list=ls())#
+require(grid)#
+require(vegan)#
+require(ggplot2)#
+require(gridExtra)#
+#
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {#
+  # Make a list from the ... arguments and plotlist#
+  plots <- c(list(...), plotlist)#
+  numPlots = length(plots)#
+  # If layout is NULL, then use 'cols' to determine layout#
+  if (is.null(layout)) {#
+    # Make the panel#
+    # ncol: Number of columns of plots#
+    # nrow: Number of rows needed, calculated from # of cols#
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),#
+                    ncol = cols, nrow = ceiling(numPlots/cols))#
+  }#
+ if (numPlots==1) {#
+    print(plots[[1]])#
+  } else {#
+    # Set up the page#
+    grid.newpage()#
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))#
+    # Make each plot, in the correct location#
+    for (i in 1:numPlots) {#
+      # Get the i,j matrix positions of the regions that contain this subplot#
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))#
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,#
+                                      layout.pos.col = matchidx$col))#
+    }#
+  }#
+}#
+PCOA_calcs <- function(dmat,mapfile,var,plottitle){#
+  	MYmetaEF = read.table(mapfile, header = T, sep = "\t", check.names = T, comment.char="")#
+  	set.seed(123)#
+  	MYpcoa <- cmdscale(as.dist(dmat), k = 2, eig=TRUE, add=TRUE) # Earlier had used dist function instead of vegdist, so was getting different values. dist did not support bray. #
+	eig2 <- eigenvals(MYpcoa)#
+	print(eig2 / sum(eig2)[1])#
+	pc1 <- round((eig2 / sum(eig2)[1])[1]*100,2)#
+	pc2 <- round((eig2 / sum(eig2)[1])[2]*100,2)#
+  	xaxis <- paste("PCoA1"," - ",pc1,"%",sep="")#
+  	yaxis <- paste("PCoA2"," - ",pc2,"%",sep="")#
+  	set.seed(123)#
+	adon <- tryCatch(adonis(as.dist(dmat) ~ MYmetaEF[,var], data=MYmetaEF, permutations = 1000, autotransform=T),error=function(e) NA)#
+	pvalue <- ifelse(is.na(adon$aov.tab[1,5]),"p-value = NA, variation = NA",paste("p-value = ",round(adon$aov.tab[1,6],3),", variation = ",round(adon$aov.tab[1,5],3)*100,"%",sep=""))#
+  PCOA <- data.frame(MYpcoa$points[,1],MYpcoa$points[,2], MYmetaEF[,var][!is.na(MYmetaEF[,var])])#
+	colnames(PCOA) <- c("PCoA1", "PCoA2" ,"comparison_groups")#
+	print (PCOA)#
+	plot.new()#
+  	#this is used to generate the confidence circles around the 95% confidence intervals#
+  	set.seed(123)#
+	ord<-ordiellipse(MYpcoa, PCOA$comparison_groups, display = "sites", kind = "se", conf = 0.95, label = T)#
+	df_ell <- data.frame()#
+	for(g in levels(PCOA$comparison_groups)){#
+		if (table(PCOA$comparison_groups)[[g]] > 2){#
+			df_ell <- rbind(df_ell, cbind(as.data.frame(with(PCOA[PCOA$comparison_groups==g,],#
+      		vegan:::veganCovEllipse(ord[[g]]$cov,ord[[g]]$center,ord[[g]]$scale))),comparison_groups=g))#
+    	}#
+	}#
+	plab <- gsub("^\\s+|\\s+$", "", strsplit(pvalue, ",")[[1]][1])#
+	varlab <- gsub("^\\s+|\\s+$", "", strsplit(pvalue, ",")[[1]][2])#
+	ppos <- max(MYpcoa$points[,2])#
+	varpos <- ppos - 0.025#
+	xpos <- min(MYpcoa$points[,1])+0.05#
+	PCOA <- cbind(PCOA,rownames(PCOA))#
+	colnames(PCOA) <- c(colnames(PCOA)[1:length(colnames(PCOA))-1],"samplenames")#
+	print (PCOA)#
+	# labs(color="Clinical Outcome") changes legend label. #
+	p1 <- ggplot(data = PCOA, aes(x=PCoA1, y=PCoA2,)) + #
+	geom_point(aes(color = comparison_groups),size=6) +#
+	scale_color_manual(values = c("red","black"))+ #
+	geom_text(aes(label=samplenames),hjust=0, vjust=0) +#
+	xlab(xaxis) + #
+	ylab(yaxis) + #
+	geom_path(data=df_ell, aes(x=Dim1, y=Dim2,colour=comparison_groups), size=1, linetype=2) + #
+	labs(title = plottitle, color="Phenotype") + #
+	theme(plot.title = element_text(size = 25),axis.text=element_text(size=15,color="black"),axis.title=element_text(size=20,color="black"), legend.key.size = unit(1,"cm"),legend.text=element_text(size=15),legend.title=element_text(size=15)) + #
+	annotate("text",x=c(xpos,xpos),y=c(ppos,varpos),label=c(plab,varlab))#
+	return (p1)#
+}#
+main_call <- function(dminp,mapfile,metavariable,plottitle){#
+	dmat <- read.table(dminp,header = T, sep = "\t", check.names = F, comment.char= "",row.names=1)#
+	u1 <- PCOA_calcs(dmat,mapfile,metavariable,plottitle)#
+	return (u1)#
+}#
+## Change these values:#
+setwd('/Users/alifaruqi/Desktop/Projects/Doug_R_Crash_Course/pcoa_id_labels_072815')#
+outputname <- "beta_diversity_figures"#
+inputfile <- c("bray_curtis_dm.txt","canberra_dm.txt","unweighted_unifrac_dm.txt","weighted_unifrac_dm.txt")#
+plotnames <- c("6 Week Samples - Mid-Colon (Bray-Curtis)","6 Week Samples - Mid-Colon (Canberra)","6 Week Samples - Mid-Colon (Unweighted UniFrac)","6 Week Samples - Mid-Colon (Weighted UniFrac)")#
+mapname <- "mapping_subset.txt"			#../../mapping_subset.txt#
+metavarname <- "MouseType"#
+# Doesn't change#
+#
+b1 <- main_call(inputfile[1],mapname,metavarname,plotnames[1])#
+b2 <- main_call(inputfile[2],mapname,metavarname,plotnames[2])#
+b3 <- main_call(inputfile[3],mapname,metavarname,plotnames[3])#
+b4 <- main_call(inputfile[4],mapname,metavarname,plotnames[4])#
+#print (b1)#
+#
+pdf(paste(outputname,".pdf",sep=""),height=15, width=20)#
+multiplot(b1,b2,b3,b4,cols=2)#
+dev.off()
+rm(list=ls())#
+require(grid)#
+require(vegan)#
+require(ggplot2)#
+require(gridExtra)#
+#
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {#
+  # Make a list from the ... arguments and plotlist#
+  plots <- c(list(...), plotlist)#
+  numPlots = length(plots)#
+  # If layout is NULL, then use 'cols' to determine layout#
+  if (is.null(layout)) {#
+    # Make the panel#
+    # ncol: Number of columns of plots#
+    # nrow: Number of rows needed, calculated from # of cols#
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),#
+                    ncol = cols, nrow = ceiling(numPlots/cols))#
+  }#
+ if (numPlots==1) {#
+    print(plots[[1]])#
+  } else {#
+    # Set up the page#
+    grid.newpage()#
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))#
+    # Make each plot, in the correct location#
+    for (i in 1:numPlots) {#
+      # Get the i,j matrix positions of the regions that contain this subplot#
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))#
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,#
+                                      layout.pos.col = matchidx$col))#
+    }#
+  }#
+}#
+PCOA_calcs <- function(dmat,mapfile,var,plottitle){#
+  	MYmetaEF = read.table(mapfile, header = T, sep = "\t", check.names = T, comment.char="")#
+  	set.seed(123)#
+  	MYpcoa <- cmdscale(as.dist(dmat), k = 2, eig=TRUE, add=TRUE) # Earlier had used dist function instead of vegdist, so was getting different values. dist did not support bray. #
+	eig2 <- eigenvals(MYpcoa)#
+	print(eig2 / sum(eig2)[1])#
+	pc1 <- round((eig2 / sum(eig2)[1])[1]*100,2)#
+	pc2 <- round((eig2 / sum(eig2)[1])[2]*100,2)#
+  	xaxis <- paste("PCoA1"," - ",pc1,"%",sep="")#
+  	yaxis <- paste("PCoA2"," - ",pc2,"%",sep="")#
+  	set.seed(123)#
+	adon <- tryCatch(adonis(as.dist(dmat) ~ MYmetaEF[,var], data=MYmetaEF, permutations = 1000, autotransform=T),error=function(e) NA)#
+	pvalue <- ifelse(is.na(adon$aov.tab[1,5]),"p-value = NA, variation = NA",paste("p-value = ",round(adon$aov.tab[1,6],3),", variation = ",round(adon$aov.tab[1,5],3)*100,"%",sep=""))#
+  PCOA <- data.frame(MYpcoa$points[,1],MYpcoa$points[,2], MYmetaEF[,var][!is.na(MYmetaEF[,var])])#
+	colnames(PCOA) <- c("PCoA1", "PCoA2" ,"comparison_groups")#
+	plot.new()#
+  	#this is used to generate the confidence circles around the 95% confidence intervals#
+  	set.seed(123)#
+	ord<-ordiellipse(MYpcoa, PCOA$comparison_groups, display = "sites", kind = "se", conf = 0.95, label = T)#
+	df_ell <- data.frame()#
+	for(g in levels(PCOA$comparison_groups)){#
+		if (table(PCOA$comparison_groups)[[g]] > 2){#
+			df_ell <- rbind(df_ell, cbind(as.data.frame(with(PCOA[PCOA$comparison_groups==g,],#
+      		vegan:::veganCovEllipse(ord[[g]]$cov,ord[[g]]$center,ord[[g]]$scale))),comparison_groups=g))#
+    	}#
+	}#
+	plab <- gsub("^\\s+|\\s+$", "", strsplit(pvalue, ",")[[1]][1])#
+	varlab <- gsub("^\\s+|\\s+$", "", strsplit(pvalue, ",")[[1]][2])#
+	ppos <- max(MYpcoa$points[,2])#
+	varpos <- ppos - 0.025#
+	xpos <- min(MYpcoa$points[,1])+0.05#
+  PCOA <- cbind(PCOA,rownames(PCOA))#
+  colnames(PCOA) <- c(colnames(PCOA)[1:length(colnames(PCOA))-1],"samplenames")#
+#
+	# labs(color="Clinical Outcome") changes legend label. #
+	p1 <- ggplot(data = PCOA, aes(PCoA1, PCoA2)) + #
+  geom_point(aes(color = comparison_groups),size=3) + #
+  geom_text(aes(label=samplenames),hjust=0, vjust=0) +      # Play-around with hjust and vjust values to your liking to best make plot#
+  xlab(xaxis) + #
+  ylab(yaxis) + #
+	geom_path(data=df_ell, aes(x=Dim1, y=Dim2,colour=comparison_groups), size=1, linetype=2) + #
+  labs(title = plottitle, color="Clinical Outcome") + #
+	theme(plot.title = element_text(size = 25),axis.text=element_text(size=15,color="black"),axis.title=element_text(size=25,color="black"), legend.key.size = unit(1,"cm"),legend.text=element_text(size=25),legend.title=element_text(size=25)) + #
+	annotate("text",x=c(xpos,xpos),y=c(ppos,varpos),label=c(plab,varlab))#
+	return (p1)#
+}#
+main_call <- function(dminp,mapfile,metavariable,plottitle){#
+	dmat <- read.table(dminp,header = T, sep = "\t", check.names = F, comment.char= "",row.names=1)#
+	u1 <- PCOA_calcs(dmat,mapfile,metavariable,plottitle)#
+	return (u1)#
+}#
+## Change these values:#
+setwd('/Users/alifaruqi/Desktop/Projects/Development_Tools/Github_Scripts/pcoa-plots')#
+outputname <- "beta_diversity"#
+inputfile <- c("bray_curtis_dm.txt","canberra_dm.txt","unweighted_unifrac_dm.txt","weighted_unifrac_dm.txt")#
+plotnames <- c("Disease vs. Healthy (Bray-Curtis)","Disease vs. Healthy (Canberra)","Disease vs. Healthy (Unweighted UniFrac)","Disease vs. Healthy (Weighted UniFrac)")#
+mapname <- "mapfile.txt"#
+metavarname <- "Treatment"#
+# Doesn't change#
+#
+b1 <- main_call(inputfile[1],mapname,metavarname,plotnames[1])#
+b2 <- main_call(inputfile[2],mapname,metavarname,plotnames[2])#
+b3 <- main_call(inputfile[3],mapname,metavarname,plotnames[3])#
+b4 <- main_call(inputfile[4],mapname,metavarname,plotnames[4])#
+#
+pdf(paste(outputname,".pdf",sep=""),height=15, width=25)#
+multiplot(b1,b2,b3,b4,cols=2)#
+dev.off()
