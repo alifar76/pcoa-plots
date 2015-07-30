@@ -33,22 +33,35 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
 }
 
 
-PCOA_calcs <- function(dmat,mapfile,var,plottitle){
-  	MYmetaEF = read.table(mapfile, header = T, sep = "\t", check.names = T, comment.char="")
-  	set.seed(123)
-  	MYpcoa <- cmdscale(as.dist(dmat), k = 2, eig=TRUE, add=TRUE) # Earlier had used dist function instead of vegdist, so was getting different values. dist did not support bray. 
+dataframe_filter <- function(namearrange,meta,MYdata){
+	rearrlist <- lapply(namearrange,function(x) eval(parse(text = paste("subset(MYdata,",meta, "==x)"))))
+	newdataf <- do.call("rbind", rearrlist)
+	return (newdataf)
+}
+
+
+
+PCOA_calcs <- function(dminp,mapfile,var,plottitle){
+	dmat <- read.table(dminp,header = T, sep = "\t", check.names = F, comment.char= "",row.names=1)
+	MYmetaEF <- read.table(mapfile,header = T, sep = "\t", check.names = T,comment.char= "")
+	namearrange <- colnames(dmat)
+	meta <- "X.SampleID"
+	MYmetaEF <- dataframe_filter(namearrange,meta,MYmetaEF)
+	set.seed(123)
+	MYpcoa <- cmdscale(as.dist(dmat), k = 2, eig=TRUE, add=TRUE) # Earlier had used dist function instead of vegdist, so was getting different values. dist did not support bray. 
 	eig2 <- eigenvals(MYpcoa)
 	print(eig2 / sum(eig2)[1])
 	pc1 <- round((eig2 / sum(eig2)[1])[1]*100,2)
 	pc2 <- round((eig2 / sum(eig2)[1])[2]*100,2)
-  	xaxis <- paste("PCoA1"," - ",pc1,"%",sep="")
-  	yaxis <- paste("PCoA2"," - ",pc2,"%",sep="")
-  	set.seed(123)
+	xaxis <- paste("PCoA1"," - ",pc1,"%",sep="")
+	yaxis <- paste("PCoA2"," - ",pc2,"%",sep="")
+	set.seed(123)
 	adon <- tryCatch(adonis(as.dist(dmat) ~ MYmetaEF[,var], data=MYmetaEF, permutations = 1000, autotransform=T),error=function(e) NA)
 	pvalue <- ifelse(is.na(adon$aov.tab[1,5]),"p-value = NA, variation = NA",paste("p-value = ",round(adon$aov.tab[1,6],3),", variation = ",round(adon$aov.tab[1,5],3)*100,"%",sep=""))
   		
-  PCOA <- data.frame(MYpcoa$points[,1],MYpcoa$points[,2], MYmetaEF[,var][!is.na(MYmetaEF[,var])])
+	PCOA <- data.frame(MYpcoa$points[,1],MYpcoa$points[,2], MYmetaEF[,var][!is.na(MYmetaEF[,var])])
 	colnames(PCOA) <- c("PCoA1", "PCoA2" ,"comparison_groups")
+	print (PCOA)
 	plot.new()
   	#this is used to generate the confidence circles around the 95% confidence intervals
   	set.seed(123)
@@ -65,49 +78,44 @@ PCOA_calcs <- function(dmat,mapfile,var,plottitle){
 	ppos <- max(MYpcoa$points[,2])
 	varpos <- ppos - 0.025
 	xpos <- min(MYpcoa$points[,1])+0.05
-  PCOA <- cbind(PCOA,rownames(PCOA))
-  colnames(PCOA) <- c(colnames(PCOA)[1:length(colnames(PCOA))-1],"samplenames")
-
+	PCOA <- cbind(PCOA,rownames(PCOA))
+	colnames(PCOA) <- c(colnames(PCOA)[1:length(colnames(PCOA))-1],"samplenames")
+	print (PCOA)
 	# labs(color="Clinical Outcome") changes legend label. 
-	p1 <- ggplot(data = PCOA, aes(PCoA1, PCoA2)) + 
-  geom_point(aes(color = comparison_groups),size=3) + 
-  
-  # Comment geom_text if you wish to ignore points labeling
-  geom_text(aes(label=samplenames),hjust=0, vjust=0) +      # Play-around with hjust and vjust values to your liking to best make plot
-  xlab(xaxis) + 
-  ylab(yaxis) + 
+	p1 <- ggplot(data = PCOA, aes(x=PCoA1, y=PCoA2,)) + 
+	geom_point(aes(color = comparison_groups),size=6) +
+	scale_color_manual(values = c("red","black"))+ 
+	geom_text(aes(label=samplenames),hjust=0, vjust=0) +			# Play-around with hjust and vjust values to your liking to best make plot
+	xlab(xaxis) + 
+	ylab(yaxis) + 
 	geom_path(data=df_ell, aes(x=Dim1, y=Dim2,colour=comparison_groups), size=1, linetype=2) + 
-  labs(title = plottitle, color="Clinical Outcome") + 
-	theme(plot.title = element_text(size = 25),axis.text=element_text(size=15,color="black"),axis.title=element_text(size=25,color="black"), legend.key.size = unit(1,"cm"),legend.text=element_text(size=25),legend.title=element_text(size=25)) + 
+	labs(title = plottitle, color="Phenotype") + 
+	theme(plot.title = element_text(size = 25),axis.text=element_text(size=15,color="black"),axis.title=element_text(size=20,color="black"), legend.key.size = unit(1,"cm"),legend.text=element_text(size=15),legend.title=element_text(size=15)) + 
 	annotate("text",x=c(xpos,xpos),y=c(ppos,varpos),label=c(plab,varlab))
 	return (p1)
 }
 
 
-main_call <- function(dminp,mapfile,metavariable,plottitle){
-	dmat <- read.table(dminp,header = T, sep = "\t", check.names = F, comment.char= "",row.names=1)
-	u1 <- PCOA_calcs(dmat,mapfile,metavariable,plottitle)
-	return (u1)
-}
- 
-
 
 ## Change these values:
 setwd('/Users/alifaruqi/Desktop/Projects/Development_Tools/Github_Scripts/pcoa-plots/src')
-outputname <- "beta_diversity"
-inputfile <- c("bray_curtis_dm.txt","canberra_dm.txt","unweighted_unifrac_dm.txt","weighted_unifrac_dm.txt")
-plotnames <- c("Disease vs. Healthy (Bray-Curtis)","Disease vs. Healthy (Canberra)","Disease vs. Healthy (Unweighted UniFrac)","Disease vs. Healthy (Weighted UniFrac)")
-mapname <- "mapfile.txt"
-metavarname <- "Treatment"
+outputname <- "beta_diversity_figures"
+dminp <- c("bray_curtis_dm.txt","canberra_dm.txt","unweighted_unifrac_dm.txt","weighted_unifrac_dm.txt")  #"canberra_dm.txt"
+plottitle <- c("Abnormal/Normal Comparison (Bray-Curtis)","Abnormal/Normal Comparison (Canberra)","Abnormal/Normal Comparison (Unweighted UniFrac)","Abnormal/Normal Comparison (Weighted UniFrac)")  #"6 Week Samples - Mid-Colon (Canberra)"
+mapfile <- "mapfile.txt"			#../../mapping_subset.txt
+var <- "Status"
 
 
-# Doesn't change
 
-b1 <- main_call(inputfile[1],mapname,metavarname,plotnames[1])
-b2 <- main_call(inputfile[2],mapname,metavarname,plotnames[2])
-b3 <- main_call(inputfile[3],mapname,metavarname,plotnames[3])
-b4 <- main_call(inputfile[4],mapname,metavarname,plotnames[4])
+### These function calls do not change
+b1 <- PCOA_calcs(dminp[1],mapfile,var,plottitle[1])
+b2 <- PCOA_calcs(dminp[2],mapfile,var,plottitle[2])
+b3 <- PCOA_calcs(dminp[3],mapfile,var,plottitle[3])
+b4 <- PCOA_calcs(dminp[4],mapfile,var,plottitle[4])
 
-pdf(paste(outputname,".pdf",sep=""),height=15, width=25)
+pdf(paste(outputname,".pdf",sep=""),height=15, width=20)
 multiplot(b1,b2,b3,b4,cols=2)
 dev.off()
+
+
+
