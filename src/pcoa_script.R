@@ -58,7 +58,6 @@ PCOA_calcs <- function(dminp,mapfile,var,plottitle){
 	set.seed(123)
 	adon <- tryCatch(adonis(as.dist(dmat) ~ MYmetaEF[,var], data=MYmetaEF, permutations = 1000, autotransform=T),error=function(e) NA)
 	pvalue <- ifelse(is.na(adon$aov.tab[1,5]),"p-value = NA, variation = NA",paste("p-value = ",round(adon$aov.tab[1,6],3),", variation = ",round(adon$aov.tab[1,5],3)*100,"%",sep=""))
-  		
 	PCOA <- data.frame(MYpcoa$points[,1],MYpcoa$points[,2], MYmetaEF[,var][!is.na(MYmetaEF[,var])])
 	colnames(PCOA) <- c("PCoA1", "PCoA2" ,"comparison_groups")
 	print (PCOA)
@@ -98,12 +97,13 @@ PCOA_calcs <- function(dminp,mapfile,var,plottitle){
 
 
 ## Change these values:
-setwd('/Users/alifaruqi/Desktop/Projects/Development_Tools/Github_Scripts/pcoa-plots/src')
-outputname <- "beta_diversity_figures"
-dminp <- c("bray_curtis_dm.txt","canberra_dm.txt","unweighted_unifrac_dm.txt","weighted_unifrac_dm.txt")  #"canberra_dm.txt"
-plottitle <- c("Abnormal/Normal Comparison (Bray-Curtis)","Abnormal/Normal Comparison (Canberra)","Abnormal/Normal Comparison (Unweighted UniFrac)","Abnormal/Normal Comparison (Weighted UniFrac)")  #"6 Week Samples - Mid-Colon (Canberra)"
-mapfile <- "mapfile.txt"			#../../mapping_subset.txt
-var <- "Status"
+setwd('/Users/alifaruqi/Desktop/Projects/Development_Tools/Github_Scripts/pcoa-plots/src')					# Working directory
+outputname <- "beta_diversity_figures"																		# Name of output figure
+dminp <- c("bray_curtis_dm.txt","canberra_dm.txt","unweighted_unifrac_dm.txt","weighted_unifrac_dm.txt")  # Vector of input DM names
+plottitle <- c("Abnormal/Normal Comparison (Bray-Curtis)","Abnormal/Normal Comparison (Canberra)","Abnormal/Normal Comparison (Unweighted UniFrac)","Abnormal/Normal Comparison (Weighted UniFrac)")  # Plot titles for each of DM used
+## The Distance Matrices input names and plot titles must have same indices in their corresponding dimp and plottitle vector. 
+mapfile <- "mapfile.txt"			# Name of mapping file
+var <- "Status"						# Name of metadata variable on which adonis calculations are to be performed
 
 
 
