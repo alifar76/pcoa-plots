@@ -116,6 +116,3 @@ b4 <- PCOA_calcs(dminp[4],mapfile,var,plottitle[4])
 pdf(paste(outputname,".pdf",sep=""),height=15, width=20)
 multiplot(b1,b2,b3,b4,cols=2)
 dev.off()
-
-
-
