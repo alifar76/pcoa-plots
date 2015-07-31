@@ -113,6 +113,6 @@ b2 <- PCOA_calcs(dminp[2],mapfile,var,plottitle[2])
 b3 <- PCOA_calcs(dminp[3],mapfile,var,plottitle[3])
 b4 <- PCOA_calcs(dminp[4],mapfile,var,plottitle[4])
 
-pdf(paste(outputname,".pdf",sep=""),height=15, width=20)
+pdf(paste(outputname,".pdf",sep=""),height=15, width=20, useDingbats=FALSE)
 multiplot(b1,b2,b3,b4,cols=2)
 dev.off()
