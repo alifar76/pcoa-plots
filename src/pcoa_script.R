@@ -108,17 +108,7 @@ var <- "Status"						# Name of metadata variable on which adonis calculations ar
 colours <- c("yellow","blue")			# Colour for dots. If more than two level of metavariable, passs on more colours
 
 
-
-
-
-
-
-
-
-
 ### These function calls do not change
-
-<<<<<<< HEAD
 plottitle <- sapply(dmtest,function(x){
     paste(compname,x,sep=" ")
    })
@@ -128,8 +118,6 @@ b2 <- PCOA_calcs(dminp[2],mapfile,var,plottitle[2],colours)
 b3 <- PCOA_calcs(dminp[3],mapfile,var,plottitle[3],colours)
 b4 <- PCOA_calcs(dminp[4],mapfile,var,plottitle[4],colours)
 
-=======
->>>>>>> d4d75c196be671c5aac6c320297c8e0ead10fd92
 pdf(paste(outputname,".pdf",sep=""),height=15, width=20, useDingbats=FALSE)
 multiplot(b1,b2,b3,b4,cols=2)
 dev.off()
