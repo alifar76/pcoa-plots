@@ -41,7 +41,7 @@ dataframe_filter <- function(namearrange,meta,MYdata){
 
 
 
-PCOA_calcs <- function(dminp,mapfile,var,plottitle){
+PCOA_calcs <- function(dminp,mapfile,var,plottitle,colours){
 	dmat <- read.table(dminp,header = T, sep = "\t", check.names = F, comment.char= "",row.names=1)
 	MYmetaEF <- read.table(mapfile,header = T, sep = "\t", check.names = T,comment.char= "")
 	namearrange <- colnames(dmat)
@@ -82,8 +82,8 @@ PCOA_calcs <- function(dminp,mapfile,var,plottitle){
 	print (PCOA)
 	# labs(color="Clinical Outcome") changes legend label. 
 	p1 <- ggplot(data = PCOA, aes(x=PCoA1, y=PCoA2,)) + 
-	geom_point(aes(color = comparison_groups),size=6) +
-	scale_color_manual(values = c("red","black"))+ 
+	geom_point(aes(color = comparison_groups),size=6) +				# Play around with size parameter to adjust dot sizes in PCoA plot
+	scale_color_manual(values = colours)+ 
 	geom_text(aes(label=samplenames),hjust=0, vjust=0) +			# Play-around with hjust and vjust values to your liking to best make plot
 	xlab(xaxis) + 
 	ylab(yaxis) + 
@@ -100,19 +100,33 @@ PCOA_calcs <- function(dminp,mapfile,var,plottitle){
 setwd('/Users/alifaruqi/Desktop/Projects/Development_Tools/Github_Scripts/pcoa-plots/src')					# Working directory
 outputname <- "beta_diversity_figures"																		# Name of output figure
 dminp <- c("bray_curtis_dm.txt","canberra_dm.txt","unweighted_unifrac_dm.txt","weighted_unifrac_dm.txt")  # Vector of input DM names
-plottitle <- c("Abnormal/Normal Comparison (Bray-Curtis)","Abnormal/Normal Comparison (Canberra)","Abnormal/Normal Comparison (Unweighted UniFrac)","Abnormal/Normal Comparison (Weighted UniFrac)")  # Plot titles for each of DM used
+dmtest <- c("Comparison (Bray-Curtis)","Comparison (Canberra)","Comparison (Unweighted UniFrac)","Comparison (Weighted UniFrac)")  # Plot titles for each of DM used
 ## The Distance Matrices input names and plot titles must have same indices in their corresponding dimp and plottitle vector. 
+compname <- "Abnormal/Normal"
 mapfile <- "mapfile.txt"			# Name of mapping file
 var <- "Status"						# Name of metadata variable on which adonis calculations are to be performed
+colours <- c("yellow","blue")			# Colour for dots. If more than two level of metavariable, passs on more colours
+
+
+
+
+
+
+
 
 
 
 ### These function calls do not change
-b1 <- PCOA_calcs(dminp[1],mapfile,var,plottitle[1])
-b2 <- PCOA_calcs(dminp[2],mapfile,var,plottitle[2])
-b3 <- PCOA_calcs(dminp[3],mapfile,var,plottitle[3])
-b4 <- PCOA_calcs(dminp[4],mapfile,var,plottitle[4])
 
-pdf(paste(outputname,".pdf",sep=""),height=15, width=20)
+plottitle <- sapply(dmtest,function(x){
+    paste(compname,x,sep=" ")
+   })
+plottile <- as.vector(plottitle)
+b1 <- PCOA_calcs(dminp[1],mapfile,var,plottitle[1],colours)
+b2 <- PCOA_calcs(dminp[2],mapfile,var,plottitle[2],colours)
+b3 <- PCOA_calcs(dminp[3],mapfile,var,plottitle[3],colours)
+b4 <- PCOA_calcs(dminp[4],mapfile,var,plottitle[4],colours)
+
+pdf(paste(outputname,".pdf",sep=""),height=15, width=20, useDingbats=FALSE)
 multiplot(b1,b2,b3,b4,cols=2)
 dev.off()
