@@ -100,7 +100,6 @@ PCOA_calcs <- function(dminp,mapfile,var,plottitle,colours){
 setwd('/Users/alifaruqi/Desktop/Projects/Development_Tools/Github_Scripts/pcoa-plots/src')					# Working directory
 outputname <- "beta_diversity_figures"																		# Name of output figure
 dminp <- c("bray_curtis_dm.txt","canberra_dm.txt","unweighted_unifrac_dm.txt","weighted_unifrac_dm.txt")  # Vector of input DM names
-dmtest <- c("Comparison (Bray-Curtis)","Comparison (Canberra)","Comparison (Unweighted UniFrac)","Comparison (Weighted UniFrac)")  # Plot titles for each of DM used
 ## The Distance Matrices input names and plot titles must have same indices in their corresponding dimp and plottitle vector. 
 compname <- "Abnormal/Normal"
 mapfile <- "mapfile.txt"			# Name of mapping file
@@ -109,6 +108,7 @@ colours <- c("yellow","blue")			# Colour for dots. If more than two level of met
 
 
 ### These function calls do not change
+dmtest <- c("Comparison (Bray-Curtis)","Comparison (Canberra)","Comparison (Unweighted UniFrac)","Comparison (Weighted UniFrac)")  # Plot titles for each of DM used
 plottitle <- sapply(dmtest,function(x){
     paste(compname,x,sep=" ")
    })
